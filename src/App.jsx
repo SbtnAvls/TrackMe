@@ -15,6 +15,7 @@ import InvestmentForm from './components/Investments/InvestmentForm';
 import InvestmentList from './components/Investments/InvestmentList';
 import EmergencyFund from './components/EmergencyFund/EmergencyFund';
 import PocketList from './components/Pockets/PocketList';
+import DataSyncBanner from './components/Sync/DataSyncBanner';
 import { useTransactions } from './hooks/useTransactions';
 import { useCreditCards } from './hooks/useCreditCards';
 import { useBalanceDistribution } from './hooks/useBalanceDistribution';
@@ -206,6 +207,8 @@ function App() {
       <Header />
 
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+        <DataSyncBanner />
+
         {/* Tab selector */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
