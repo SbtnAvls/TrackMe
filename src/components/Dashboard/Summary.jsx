@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, TrendingDown, Wallet, PiggyBank, Sparkles, Banknote, Building2, Pencil, Check, X, HandCoins, Scale, Landmark } from 'lucide-react';
-import { formatCurrency } from '../../utils/formatters';
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, Sparkles, Banknote, Building2, Pencil, Check, X, HandCoins, Scale, Landmark, ArrowRightLeft, CreditCard, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { formatCurrency, formatDate, formatDateForInput } from '../../utils/formatters';
 import { usePrivacy } from '../../context/PrivacyContext';
+import { TRANSFER_TYPES } from '../../db/database';
 
 const container = {
   hidden: { opacity: 0 },
@@ -108,16 +109,50 @@ function EditableAmount({ value, onSave, icon: Icon, label, color, isHidden }) {
   );
 }
 
-export default function Summary({ summary, accumulatedBalance, distribution, onUpdateDistribution, totalDebt, pocketTotalSaved, emergencyFundAmount, investmentTotalCurrent }) {
+const TRANSFER_LABELS = {
+  bank_to_cash: { label: 'Banco a Efectivo', color: 'text-green-400', bg: 'bg-green-500/10' },
+  credit_to_cash: { label: 'TC a Efectivo', color: 'text-orange-400', bg: 'bg-orange-500/10' },
+  credit_to_debit: { label: 'TC a Banco', color: 'text-blue-400', bg: 'bg-blue-500/10' }
+};
+
+export default function Summary({ summary, accumulatedBalance, distribution, onUpdateCash, totalDebt, pocketTotalSaved, emergencyFundAmount, investmentTotalCurrent, transfers = [], onAddTransfer, onDeleteTransfer, creditCards = [] }) {
   const { isHidden } = usePrivacy();
   const isPositive = accumulatedBalance >= 0;
 
-  const unallocated = accumulatedBalance - (distribution.cash + distribution.savings);
+  const savings = accumulatedBalance - (distribution.cash || 0);
 
   // Derived financial metrics
   const disponible = accumulatedBalance - (pocketTotalSaved || 0) - (emergencyFundAmount || 0);
   const netoSinDeudas = accumulatedBalance - (totalDebt || 0);
   const patrimonioNeto = accumulatedBalance + (investmentTotalCurrent || 0) - (totalDebt || 0);
+
+  // Transfer form state
+  const [showTransferForm, setShowTransferForm] = useState(false);
+  const [transferType, setTransferType] = useState('bank_to_cash');
+  const [transferAmount, setTransferAmount] = useState('');
+  const [transferCardId, setTransferCardId] = useState('');
+  const [transferDescription, setTransferDescription] = useState('');
+  const [transferDate, setTransferDate] = useState(formatDateForInput(new Date()));
+
+  const needsCreditCard = transferType === 'credit_to_cash' || transferType === 'credit_to_debit';
+
+  const handleTransferSubmit = (e) => {
+    e.preventDefault();
+    if (!transferAmount || (needsCreditCard && !transferCardId)) return;
+
+    onAddTransfer({
+      type: transferType,
+      amount: parseFloat(transferAmount),
+      creditCardId: needsCreditCard ? parseInt(transferCardId) : null,
+      description: transferDescription,
+      date: transferDate
+    });
+
+    setTransferAmount('');
+    setTransferDescription('');
+    setTransferCardId('');
+    setTransferDate(formatDateForInput(new Date()));
+  };
 
   return (
     <motion.div
@@ -244,36 +279,201 @@ export default function Summary({ summary, accumulatedBalance, distribution, onU
             transition={{ delay: 0.3 }}
             className="pt-4 border-t border-white/10"
           >
-            <p className="text-xs text-zinc-500 mb-3">Distribución del saldo (clic para editar)</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <p className="text-xs text-zinc-500 mb-3">Distribución del saldo</p>
+            <div className="grid grid-cols-2 gap-2">
               <EditableAmount
-                value={distribution.cash}
-                onSave={(amount) => onUpdateDistribution({ ...distribution, cash: amount })}
+                value={distribution.cash || 0}
+                onSave={(amount) => onUpdateCash(amount)}
                 icon={Banknote}
                 label="Efectivo"
                 color="bg-green-500/20 text-green-400"
                 isHidden={isHidden}
               />
-              <EditableAmount
-                value={distribution.savings}
-                onSave={(amount) => onUpdateDistribution({ ...distribution, savings: amount })}
-                icon={Building2}
-                label="Cuentas de ahorro"
-                color="bg-blue-500/20 text-blue-400"
-                isHidden={isHidden}
-              />
               <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/5 border border-white/10">
-                <div className="p-1.5 rounded-lg bg-zinc-500/20 text-zinc-400">
-                  <Wallet className="w-4 h-4" />
+                <div className="p-1.5 rounded-lg bg-blue-500/20 text-blue-400">
+                  <Building2 className="w-4 h-4" />
                 </div>
                 <div className="text-left">
-                  <p className="text-xs text-zinc-500">Sin asignar</p>
-                  <p className={`text-sm font-medium ${unallocated < 0 ? 'text-orange-400' : 'text-zinc-400'}`}>
-                    {isHidden ? '••••••' : formatCurrency(unallocated)}
+                  <p className="text-xs text-zinc-500">Cuentas de ahorro</p>
+                  <p className={`text-sm font-medium ${savings >= 0 ? 'text-blue-400' : 'text-orange-400'}`}>
+                    {isHidden ? '••••••' : formatCurrency(savings)}
                   </p>
+                  <p className="text-[10px] text-zinc-600">Auto-calculado</p>
                 </div>
               </div>
             </div>
+          </motion.div>
+
+          {/* Transfers section */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="pt-4 border-t border-white/10"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-zinc-500">Movimientos entre cuentas</p>
+              <motion.button
+                onClick={() => setShowTransferForm(!showTransferForm)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-violet-500/10 text-violet-400 border border-violet-500/20 hover:bg-violet-500/20 transition-colors"
+              >
+                {showTransferForm ? <ChevronUp className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                {showTransferForm ? 'Ocultar' : 'Nuevo'}
+              </motion.button>
+            </div>
+
+            <AnimatePresence>
+              {showTransferForm && (
+                <motion.form
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  onSubmit={handleTransferSubmit}
+                  className="space-y-3 mb-3 overflow-hidden"
+                >
+                  {/* Transfer type */}
+                  <div className="flex gap-1.5 p-1 rounded-xl bg-white/5">
+                    {TRANSFER_TYPES.map((tt) => (
+                      <motion.button
+                        key={tt.id}
+                        type="button"
+                        onClick={() => {
+                          setTransferType(tt.id);
+                          if (tt.id === 'bank_to_cash') setTransferCardId('');
+                        }}
+                        whileTap={{ scale: 0.97 }}
+                        className={`flex-1 py-2 px-1.5 rounded-lg text-xs font-medium transition-all ${
+                          transferType === tt.id
+                            ? tt.id === 'bank_to_cash'
+                              ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                              : tt.id === 'credit_to_cash'
+                              ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+                              : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                            : 'text-zinc-500 hover:text-zinc-300 border border-transparent'
+                        }`}
+                      >
+                        {tt.label}
+                      </motion.button>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={transferAmount}
+                      onChange={(e) => setTransferAmount(e.target.value)}
+                      placeholder="Monto"
+                      className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-violet-500 placeholder-zinc-600"
+                      required
+                    />
+                    <input
+                      type="date"
+                      value={transferDate}
+                      onChange={(e) => setTransferDate(e.target.value)}
+                      className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-violet-500"
+                      required
+                    />
+                  </div>
+
+                  {/* Credit card selector for advance types */}
+                  <AnimatePresence>
+                    {needsCreditCard && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                      >
+                        <select
+                          value={transferCardId}
+                          onChange={(e) => setTransferCardId(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-violet-500"
+                          required
+                        >
+                          <option value="">Seleccionar tarjeta</option>
+                          {creditCards.map((card) => (
+                            <option key={card.id} value={card.id}>
+                              {card.bank} {card.lastFourDigits ? `•••• ${card.lastFourDigits}` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <input
+                    type="text"
+                    value={transferDescription}
+                    onChange={(e) => setTransferDescription(e.target.value)}
+                    placeholder="Descripción (opcional)"
+                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-violet-500 placeholder-zinc-600"
+                  />
+
+                  <motion.button
+                    type="submit"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    disabled={!transferAmount || (needsCreditCard && !transferCardId)}
+                    className="w-full py-2 px-3 rounded-lg text-sm font-medium bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    <ArrowRightLeft className="w-4 h-4" />
+                    Registrar movimiento
+                  </motion.button>
+                </motion.form>
+              )}
+            </AnimatePresence>
+
+            {/* Recent transfers */}
+            {transfers.length > 0 && (
+              <div className="space-y-1.5">
+                {transfers.slice(0, 5).map((transfer) => {
+                  const info = TRANSFER_LABELS[transfer.type] || TRANSFER_LABELS.bank_to_cash;
+                  const card = transfer.creditCardId ? creditCards.find(c => c.id === transfer.creditCardId) : null;
+                  return (
+                    <div
+                      key={transfer.id}
+                      className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 border border-white/5 group/item"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className={`p-1 rounded-md ${info.bg}`}>
+                          <ArrowRightLeft className={`w-3 h-3 ${info.color}`} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <p className={`text-xs font-medium ${info.color}`}>{info.label}</p>
+                            {card && (
+                              <span className="text-[10px] text-zinc-500">{card.bank}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-[10px] text-zinc-600">{formatDate(transfer.date)}</p>
+                            {transfer.description && (
+                              <p className="text-[10px] text-zinc-600">• {transfer.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-medium text-white">
+                          {isHidden ? '••••••' : formatCurrency(transfer.amount)}
+                        </p>
+                        <motion.button
+                          onClick={() => onDeleteTransfer(transfer.id)}
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          className="p-1 rounded-md opacity-0 group-hover/item:opacity-100 transition-opacity text-zinc-600 hover:text-red-400"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </motion.button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </motion.div>
         </div>
       </motion.div>

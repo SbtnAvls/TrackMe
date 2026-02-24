@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Receipt, FileWarning, Sparkles, TrendingUp, Shield, Wallet } from 'lucide-react';
 import Header from './components/Layout/Header';
@@ -22,6 +22,7 @@ import { useBalanceDistribution } from './hooks/useBalanceDistribution';
 import { useInvestments } from './hooks/useInvestments';
 import { useEmergencyFund } from './hooks/useEmergencyFund';
 import { usePockets } from './hooks/usePockets';
+import { useTransfers } from './hooks/useTransfers';
 
 function App() {
   const today = new Date();
@@ -56,7 +57,8 @@ function App() {
 
   const {
     distribution,
-    saveDistribution,
+    updateCash,
+    adjustCash,
     isLoading: loadingDistribution
   } = useBalanceDistribution();
 
@@ -100,6 +102,19 @@ function App() {
     isLoading: loadingPockets
   } = usePockets();
 
+  const {
+    transfers,
+    addTransfer,
+    deleteTransfer,
+    getTransfersByMonth,
+    isLoading: loadingTransfers
+  } = useTransfers();
+
+  const monthlyTransfers = useMemo(
+    () => getTransfersByMonth(year, month),
+    [getTransfersByMonth, year, month]
+  );
+
   const handleMonthChange = (newYear, newMonth) => {
     setYear(newYear);
     setMonth(newMonth);
@@ -107,10 +122,26 @@ function App() {
 
   const handleSubmitTransaction = async (data) => {
     if (editingTransaction) {
+      const oldTx = editingTransaction;
+
+      // Compute net cash delta in a single operation
+      let delta = 0;
+      if (oldTx.paymentMethod === 'cash') {
+        delta += oldTx.type === 'income' ? -oldTx.amount : oldTx.amount;
+      }
+      if (data.paymentMethod === 'cash') {
+        delta += data.type === 'income' ? data.amount : -data.amount;
+      }
+
       await updateTransaction(editingTransaction.id, data);
+      if (delta !== 0) await adjustCash(delta);
       setEditingTransaction(null);
     } else {
       await addTransaction(data);
+      if (data.paymentMethod === 'cash') {
+        if (data.type === 'income') await adjustCash(data.amount);
+        else if (data.type === 'expense') await adjustCash(-data.amount);
+      }
     }
   };
 
@@ -121,6 +152,11 @@ function App() {
 
   const handleDeleteTransaction = async (id) => {
     if (window.confirm('¿Estás seguro de eliminar esta transacción?')) {
+      const tx = transactions.find(t => t.id === id);
+      if (tx?.paymentMethod === 'cash') {
+        if (tx.type === 'income') await adjustCash(-tx.amount);
+        else if (tx.type === 'expense') await adjustCash(tx.amount);
+      }
       await deleteTransaction(id);
     }
   };
@@ -181,7 +217,24 @@ function App() {
     setEditingInvestment(null);
   };
 
-  if (loadingTransactions || loadingCards || loadingDistribution || loadingInvestments || loadingEmergencyFund || loadingPockets) {
+  const handleAddTransfer = async (data) => {
+    await addTransfer(data);
+    if (data.type === 'bank_to_cash' || data.type === 'credit_to_cash') {
+      await adjustCash(data.amount);
+    }
+  };
+
+  const handleDeleteTransfer = async (id) => {
+    if (window.confirm('¿Eliminar este movimiento?')) {
+      const transfer = transfers.find(t => t.id === id);
+      if (transfer && (transfer.type === 'bank_to_cash' || transfer.type === 'credit_to_cash')) {
+        await adjustCash(-transfer.amount);
+      }
+      await deleteTransfer(id);
+    }
+  };
+
+  if (loadingTransactions || loadingCards || loadingDistribution || loadingInvestments || loadingEmergencyFund || loadingPockets || loadingTransfers) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <motion.div
@@ -351,11 +404,15 @@ function App() {
                   summary={summary}
                   accumulatedBalance={accumulatedBalance}
                   distribution={distribution}
-                  onUpdateDistribution={saveDistribution}
+                  onUpdateCash={updateCash}
                   totalDebt={totalDebt}
                   pocketTotalSaved={pocketTotals.totalSaved}
                   emergencyFundAmount={emergencyFund.currentAmount}
                   investmentTotalCurrent={investmentTotals.totalCurrent}
+                  transfers={monthlyTransfers}
+                  onAddTransfer={handleAddTransfer}
+                  onDeleteTransfer={handleDeleteTransfer}
+                  creditCards={creditCards}
                 />
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

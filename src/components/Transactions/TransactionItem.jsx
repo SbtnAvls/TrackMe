@@ -83,6 +83,15 @@ export default function TransactionItem({ transaction, onEdit, onDelete, creditC
             {isCardPayment && (
               <span className="text-xs text-blue-400/70">• Pago deuda</span>
             )}
+            {!hasDebt && !isCardPayment && (
+              <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                transaction.paymentMethod === 'cash'
+                  ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                  : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+              }`}>
+                {transaction.paymentMethod === 'cash' ? 'Efectivo' : 'Débito'}
+              </span>
+            )}
           </div>
         </div>
       </div>

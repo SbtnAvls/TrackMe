@@ -18,7 +18,8 @@ const TABLE_NAMES = [
   'investments',
   'pockets',
   'pocketMovements',
-  'settings'
+  'settings',
+  'transfers'
 ];
 
 const TABLE_OBJECTS = {
@@ -27,7 +28,8 @@ const TABLE_OBJECTS = {
   investments: db.investments,
   pockets: db.pockets,
   pocketMovements: db.pocketMovements,
-  settings: db.settings
+  settings: db.settings,
+  transfers: db.transfers
 };
 
 const MAX_BATCH_OPERATIONS = 400;
@@ -108,6 +110,7 @@ export async function replaceLocalData(snapshot = {}) {
     TABLE_OBJECTS.pockets,
     TABLE_OBJECTS.pocketMovements,
     TABLE_OBJECTS.settings,
+    TABLE_OBJECTS.transfers,
     async () => {
       await Promise.all(TABLE_NAMES.map((name) => TABLE_OBJECTS[name].clear()));
 

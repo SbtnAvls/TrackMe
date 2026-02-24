@@ -14,27 +14,38 @@ export function useTransactions(year, month) {
     [year, month]
   );
 
-  // Balance acumulado: todas las transacciones hasta el final del mes seleccionado
+  // Balance acumulado: todas las transacciones + avances de crédito hasta el final del mes
   // IMPORTANTE: Los gastos con tarjeta de crédito NO afectan el saldo (no salió dinero del bolsillo)
+  // Los avances de crédito (credit_to_cash, credit_to_debit) SÍ suman al saldo (dinero líquido nuevo)
   const accumulatedBalance = useLiveQuery(
-    () => db.transactions
-      .where('date')
-      .belowOrEqual(endDate.toISOString())
-      .toArray()
-      .then(allTransactions => {
-        return allTransactions.reduce((acc, t) => {
-          if (t.type === 'income') {
-            // Ingresos suman al saldo
-            return acc + t.amount;
-          } else if (t.type === 'expense' && t.creditCardId) {
-            // Gastos con tarjeta de crédito NO afectan el saldo (es deuda, no salió dinero)
-            return acc;
-          } else {
-            // Gastos en efectivo/débito y pagos a tarjeta restan del saldo
-            return acc - t.amount;
-          }
-        }, 0);
-      }),
+    async () => {
+      const allTransactions = await db.transactions
+        .where('date')
+        .belowOrEqual(endDate.toISOString())
+        .toArray();
+
+      const txBalance = allTransactions.reduce((acc, t) => {
+        if (t.type === 'income') {
+          return acc + t.amount;
+        } else if (t.type === 'expense' && t.creditCardId) {
+          return acc;
+        } else {
+          return acc - t.amount;
+        }
+      }, 0);
+
+      // Avances de crédito traen dinero líquido al usuario
+      const allTransfers = await db.transfers
+        .where('date')
+        .belowOrEqual(endDate.toISOString())
+        .toArray();
+
+      const advanceBalance = allTransfers
+        .filter(t => t.type === 'credit_to_cash' || t.type === 'credit_to_debit')
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      return txBalance + advanceBalance;
+    },
     [year, month]
   );
 

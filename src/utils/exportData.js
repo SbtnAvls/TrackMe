@@ -4,8 +4,9 @@ import { formatDate, getMonthName } from './formatters';
 export const exportToExcel = (transactions, year, month) => {
   const data = transactions.map(t => ({
     Fecha: formatDate(t.date),
-    Tipo: t.type === 'income' ? 'Ingreso' : 'Gasto',
+    Tipo: t.type === 'income' ? 'Ingreso' : t.type === 'card_payment' ? 'Pago deuda' : 'Gasto',
     Categoría: t.category,
+    'Método de pago': t.creditCardId ? 'Tarjeta' : (t.paymentMethod === 'cash' ? 'Efectivo' : 'Débito'),
     Descripción: t.description,
     Monto: t.amount
   }));
@@ -21,8 +22,9 @@ export const exportToExcel = (transactions, year, month) => {
 export const exportToCSV = (transactions, year, month) => {
   const data = transactions.map(t => ({
     Fecha: formatDate(t.date),
-    Tipo: t.type === 'income' ? 'Ingreso' : 'Gasto',
+    Tipo: t.type === 'income' ? 'Ingreso' : t.type === 'card_payment' ? 'Pago deuda' : 'Gasto',
     Categoría: t.category,
+    'Método de pago': t.creditCardId ? 'Tarjeta' : (t.paymentMethod === 'cash' ? 'Efectivo' : 'Débito'),
     Descripción: t.description,
     Monto: t.amount
   }));

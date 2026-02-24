@@ -43,6 +43,16 @@ db.version(7).stores({
   pocketMovements: '++id, pocketId, type, date'
 });
 
+db.version(8).stores({
+  transactions: '++id, type, category, date, createdAt, creditCardId',
+  creditCards: '++id, bank, debtType, createdAt',
+  settings: 'key',
+  investments: '++id, type, symbol, createdAt',
+  pockets: '++id, name, category, createdAt',
+  pocketMovements: '++id, pocketId, type, date',
+  transfers: '++id, type, date, createdAt, creditCardId'
+});
+
 export const INCOME_CATEGORIES = [
   'Salario',
   'Freelance',
@@ -140,6 +150,13 @@ export const EMERGENCY_FUND_TIPS = [
     title: 'No lo toques',
     content: 'Vacaciones, ofertas o compras no son emergencias. Si lo usas, tu primera prioridad debe ser reponerlo.'
   }
+];
+
+// Tipos de transferencia entre cuentas
+export const TRANSFER_TYPES = [
+  { id: 'bank_to_cash', label: 'Banco a Efectivo', description: 'Retiro de banco a efectivo' },
+  { id: 'credit_to_cash', label: 'Avance TC a Efectivo', description: 'Avance de tarjeta de crédito a efectivo' },
+  { id: 'credit_to_debit', label: 'Avance TC a Banco', description: 'Avance de tarjeta de crédito a banco/débito' }
 ];
 
 export const getCategories = (type) => {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, CreditCard, Zap, User, Landmark, Wallet } from 'lucide-react';
+import { Plus, X, CreditCard, Zap, User, Landmark, Wallet, Banknote, Building2 } from 'lucide-react';
 import { getCategories, DEBT_PAYMENT_CATEGORY } from '../../db/database';
 import { formatDateForInput } from '../../utils/formatters';
 
@@ -10,6 +10,7 @@ export default function TransactionForm({ onSubmit, initialData, onCancel, credi
   const [category, setCategory] = useState(initialData?.category || '');
   const [description, setDescription] = useState(initialData?.description || '');
   const [creditCardId, setCreditCardId] = useState(initialData?.creditCardId || '');
+  const [paymentMethod, setPaymentMethod] = useState(initialData?.paymentMethod || 'debit');
   const [date, setDate] = useState(
     initialData?.date ? formatDateForInput(initialData.date) : formatDateForInput(new Date())
   );
@@ -21,6 +22,7 @@ export default function TransactionForm({ onSubmit, initialData, onCancel, credi
       setCategory(initialData.category || '');
       setDescription(initialData.description || '');
       setCreditCardId(initialData.creditCardId || '');
+      setPaymentMethod(initialData.paymentMethod || 'debit');
       setDate(initialData.date ? formatDateForInput(initialData.date) : formatDateForInput(new Date()));
     } else {
       setType('expense');
@@ -28,6 +30,7 @@ export default function TransactionForm({ onSubmit, initialData, onCancel, credi
       setCategory('');
       setDescription('');
       setCreditCardId('');
+      setPaymentMethod('debit');
       setDate(formatDateForInput(new Date()));
     }
   }, [initialData]);
@@ -53,7 +56,8 @@ export default function TransactionForm({ onSubmit, initialData, onCancel, credi
       category,
       description,
       date,
-      creditCardId: creditCardId ? parseInt(creditCardId) : null
+      creditCardId: creditCardId ? parseInt(creditCardId) : null,
+      paymentMethod: creditCardId ? null : paymentMethod
     });
 
     if (!initialData) {
@@ -61,6 +65,7 @@ export default function TransactionForm({ onSubmit, initialData, onCancel, credi
       setCategory(type === 'card_payment' ? DEBT_PAYMENT_CATEGORY : '');
       setDescription('');
       setCreditCardId('');
+      setPaymentMethod('debit');
       setDate(formatDateForInput(new Date()));
     }
   };
@@ -256,6 +261,54 @@ export default function TransactionForm({ onSubmit, initialData, onCancel, credi
                   Primero agrega una deuda
                 </p>
               )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Payment method selector (cash/debit) */}
+        <AnimatePresence mode="wait">
+          {((type === 'income') || (type === 'expense' && !creditCardId)) && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              <label className="block text-sm font-medium text-zinc-400 mb-2">
+                <div className="flex items-center gap-2">
+                  <Wallet className="w-4 h-4" />
+                  Cuenta
+                </div>
+              </label>
+              <div className="flex gap-2 p-1 rounded-xl bg-white/5">
+                <motion.button
+                  type="button"
+                  onClick={() => setPaymentMethod('cash')}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg font-medium text-sm transition-all duration-300 ${
+                    paymentMethod === 'cash'
+                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                      : 'text-zinc-400 hover:text-white border border-transparent'
+                  }`}
+                >
+                  <Banknote className="w-4 h-4" />
+                  Efectivo
+                </motion.button>
+                <motion.button
+                  type="button"
+                  onClick={() => setPaymentMethod('debit')}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg font-medium text-sm transition-all duration-300 ${
+                    paymentMethod === 'debit'
+                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                      : 'text-zinc-400 hover:text-white border border-transparent'
+                  }`}
+                >
+                  <Building2 className="w-4 h-4" />
+                  Débito
+                </motion.button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

@@ -3,25 +3,16 @@ import { db } from '../db/database';
 
 const SETTINGS_KEY = 'balanceDistribution';
 
-const defaultDistribution = {
-  cash: 0,
-  savings: 0
-};
-
 export function useBalanceDistribution() {
-  const [distribution, setDistribution] = useState(defaultDistribution);
+  const [distribution, setDistribution] = useState({ cash: 0 });
   const [isLoading, setIsLoading] = useState(true);
 
-  // Cargar distribución guardada
   useEffect(() => {
     const loadDistribution = async () => {
       try {
         const saved = await db.settings.get(SETTINGS_KEY);
         if (saved) {
-          setDistribution({
-            cash: saved.cash || 0,
-            savings: saved.savings || 0
-          });
+          setDistribution({ cash: saved.cash || 0 });
         }
       } catch (error) {
         console.error('Error loading balance distribution:', error);
@@ -33,38 +24,41 @@ export function useBalanceDistribution() {
     loadDistribution();
   }, []);
 
-  // Guardar distribución
-  const saveDistribution = useCallback(async (newDistribution) => {
+  // Override manual del efectivo
+  const updateCash = useCallback(async (amount) => {
     try {
       await db.settings.put({
         key: SETTINGS_KEY,
-        cash: newDistribution.cash,
-        savings: newDistribution.savings,
+        cash: amount,
         updatedAt: new Date()
       });
-      setDistribution(newDistribution);
+      setDistribution({ cash: amount });
     } catch (error) {
-      console.error('Error saving balance distribution:', error);
+      console.error('Error updating cash:', error);
     }
   }, []);
 
-  // Actualizar solo efectivo
-  const updateCash = useCallback((amount) => {
-    const newDist = { ...distribution, cash: amount };
-    saveDistribution(newDist);
-  }, [distribution, saveDistribution]);
-
-  // Actualizar solo ahorros
-  const updateSavings = useCallback((amount) => {
-    const newDist = { ...distribution, savings: amount };
-    saveDistribution(newDist);
-  }, [distribution, saveDistribution]);
+  // Ajuste por delta (lee de DB para evitar race conditions)
+  const adjustCash = useCallback(async (delta) => {
+    try {
+      const saved = await db.settings.get(SETTINGS_KEY);
+      const current = saved?.cash || 0;
+      const newCash = current + delta;
+      await db.settings.put({
+        key: SETTINGS_KEY,
+        cash: newCash,
+        updatedAt: new Date()
+      });
+      setDistribution({ cash: newCash });
+    } catch (error) {
+      console.error('Error adjusting cash:', error);
+    }
+  }, []);
 
   return {
     distribution,
     isLoading,
-    saveDistribution,
     updateCash,
-    updateSavings
+    adjustCash
   };
 }

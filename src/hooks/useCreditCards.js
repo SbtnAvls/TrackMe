@@ -2,10 +2,16 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/database';
 
 export function useCreditCards() {
-  // Obtener tarjetas y transacciones asociadas
+  // Obtener tarjetas, transacciones asociadas y avances de crédito
   const data = useLiveQuery(async () => {
     const cards = await db.creditCards.orderBy('createdAt').reverse().toArray();
     const cardTransactions = await db.transactions
+      .where('creditCardId')
+      .above(0)
+      .toArray();
+
+    // Avances de crédito desde la tabla de transferencias
+    const creditTransfers = await db.transfers
       .where('creditCardId')
       .above(0)
       .toArray();
@@ -24,13 +30,19 @@ export function useCreditCards() {
         .filter(t => t.type === 'card_payment')
         .reduce((sum, t) => sum + t.amount, 0);
 
-      // Saldo dinámico = saldo inicial + gastos - pagos
-      const dynamicBalance = (card.currentBalance || 0) + expenses - payments;
+      // Avances de crédito de esta tarjeta (aumentan deuda)
+      const advances = creditTransfers
+        .filter(t => t.creditCardId === card.id)
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      // Saldo dinámico = saldo inicial + gastos + avances - pagos
+      const dynamicBalance = (card.currentBalance || 0) + expenses + advances - payments;
 
       return {
         ...card,
         initialBalance: card.currentBalance || 0,
         expensesTotal: expenses,
+        advancesTotal: advances,
         paymentsTotal: payments,
         dynamicBalance: Math.max(0, dynamicBalance) // No puede ser negativo
       };
@@ -54,8 +66,9 @@ export function useCreditCards() {
   };
 
   const deleteCreditCard = async (id) => {
-    // También eliminar transacciones asociadas a esta tarjeta
+    // También eliminar transacciones y transferencias asociadas a esta tarjeta
     await db.transactions.where('creditCardId').equals(id).delete();
+    await db.transfers.where('creditCardId').equals(id).delete();
     return await db.creditCards.delete(id);
   };
 
