@@ -352,6 +352,10 @@ function App() {
                   accumulatedBalance={accumulatedBalance}
                   distribution={distribution}
                   onUpdateDistribution={saveDistribution}
+                  totalDebt={totalDebt}
+                  pocketTotalSaved={pocketTotals.totalSaved}
+                  emergencyFundAmount={emergencyFund.currentAmount}
+                  investmentTotalCurrent={investmentTotals.totalCurrent}
                 />
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

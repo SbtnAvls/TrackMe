@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, TrendingDown, Wallet, PiggyBank, Sparkles, Banknote, Building2, Pencil, Check, X } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, Sparkles, Banknote, Building2, Pencil, Check, X, HandCoins, Scale, Landmark } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
 import { usePrivacy } from '../../context/PrivacyContext';
 
@@ -108,11 +108,16 @@ function EditableAmount({ value, onSave, icon: Icon, label, color, isHidden }) {
   );
 }
 
-export default function Summary({ summary, accumulatedBalance, distribution, onUpdateDistribution }) {
+export default function Summary({ summary, accumulatedBalance, distribution, onUpdateDistribution, totalDebt, pocketTotalSaved, emergencyFundAmount, investmentTotalCurrent }) {
   const { isHidden } = usePrivacy();
   const isPositive = accumulatedBalance >= 0;
 
   const unallocated = accumulatedBalance - (distribution.cash + distribution.savings);
+
+  // Derived financial metrics
+  const disponible = accumulatedBalance - (pocketTotalSaved || 0) - (emergencyFundAmount || 0);
+  const netoSinDeudas = accumulatedBalance - (totalDebt || 0);
+  const patrimonioNeto = accumulatedBalance + (investmentTotalCurrent || 0) - (totalDebt || 0);
 
   return (
     <motion.div
@@ -179,11 +184,64 @@ export default function Summary({ summary, accumulatedBalance, distribution, onU
             </motion.div>
           </div>
 
+          {/* Financial Metrics */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="pt-4 border-t border-white/10"
+          >
+            <p className="text-xs text-zinc-500 mb-3">Panorama financiero</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {/* Disponible */}
+              <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10">
+                <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400">
+                  <HandCoins className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs text-zinc-500">Disponible</p>
+                  <p className={`text-sm font-semibold ${disponible >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {isHidden ? '••••••' : formatCurrency(disponible)}
+                  </p>
+                  <p className="text-[10px] text-zinc-600">Sin bolsillos ni emergencia</p>
+                </div>
+              </div>
+
+              {/* Neto sin deudas */}
+              <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10">
+                <div className={`p-1.5 rounded-lg ${netoSinDeudas >= 0 ? 'bg-cyan-500/20 text-cyan-400' : 'bg-red-500/20 text-red-400'}`}>
+                  <Scale className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs text-zinc-500">Total - Deudas</p>
+                  <p className={`text-sm font-semibold ${netoSinDeudas >= 0 ? 'text-cyan-400' : 'text-red-400'}`}>
+                    {isHidden ? '••••••' : formatCurrency(netoSinDeudas)}
+                  </p>
+                  <p className="text-[10px] text-zinc-600">Saldo después de deudas</p>
+                </div>
+              </div>
+
+              {/* Patrimonio neto */}
+              <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10">
+                <div className={`p-1.5 rounded-lg ${patrimonioNeto >= 0 ? 'bg-violet-500/20 text-violet-400' : 'bg-red-500/20 text-red-400'}`}>
+                  <Landmark className="w-4 h-4" />
+                </div>
+                <div className="text-left">
+                  <p className="text-xs text-zinc-500">Patrimonio neto</p>
+                  <p className={`text-sm font-semibold ${patrimonioNeto >= 0 ? 'text-violet-400' : 'text-red-400'}`}>
+                    {isHidden ? '••••••' : formatCurrency(patrimonioNeto)}
+                  </p>
+                  <p className="text-[10px] text-zinc-600">Saldo + inversiones - deudas</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
           {/* Balance Distribution */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.3 }}
             className="pt-4 border-t border-white/10"
           >
             <p className="text-xs text-zinc-500 mb-3">Distribución del saldo (clic para editar)</p>
