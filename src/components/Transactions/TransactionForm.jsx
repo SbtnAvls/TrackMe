@@ -204,7 +204,7 @@ export default function TransactionForm({ onSubmit, initialData, onCancel, credi
               <label className="block text-sm font-medium text-zinc-400 mb-2">
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-4 h-4" />
-                  Método de pago
+                  Cargar a deuda
                 </div>
               </label>
               <select
@@ -212,7 +212,7 @@ export default function TransactionForm({ onSubmit, initialData, onCancel, credi
                 onChange={(e) => setCreditCardId(e.target.value)}
                 className="select-dark"
               >
-                <option value="">Efectivo / Débito</option>
+                <option value="">Sin tarjeta (pago directo)</option>
                 {creditCards.map((card) => (
                   <option key={card.id} value={card.id}>
                     [{getDebtLabel(card)}] {card.bank} {card.lastFourDigits ? `•••• ${card.lastFourDigits}` : ''}
