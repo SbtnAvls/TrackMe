@@ -263,38 +263,38 @@ function App() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass rounded-2xl p-1.5 overflow-x-auto scrollbar-hide"
+          className="glass rounded-2xl p-1 sm:p-1.5"
         >
-          <div className="flex gap-1.5 min-w-max sm:min-w-0">
+          <div className="flex gap-1">
             <motion.button
               onClick={() => setActiveTab('transactions')}
               whileTap={{ scale: 0.97 }}
-              className={`flex items-center justify-center gap-1.5 py-2.5 px-3 sm:px-4 sm:flex-1 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${
+              className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-1 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 ${
                 activeTab === 'transactions'
                   ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-500/25'
                   : 'text-zinc-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Receipt className="w-4 h-4 sm:w-5 sm:h-5" />
+              <Receipt className="w-4 h-4 shrink-0" />
               <span className="hidden sm:inline">Gastos e Ingresos</span>
-              <span className="sm:hidden">Gastos</span>
+              <span className="sm:hidden truncate">Gastos</span>
             </motion.button>
             <motion.button
               onClick={() => setActiveTab('creditCards')}
               whileTap={{ scale: 0.97 }}
-              className={`flex items-center justify-center gap-1.5 py-2.5 px-3 sm:px-4 sm:flex-1 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${
+              className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-1 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 ${
                 activeTab === 'creditCards'
                   ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg shadow-orange-500/25'
                   : 'text-zinc-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <FileWarning className="w-4 h-4 sm:w-5 sm:h-5" />
-              Deudas
+              <FileWarning className="w-4 h-4 shrink-0" />
+              <span className="truncate">Deudas</span>
               {totalDebt > 0 && (
                 <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full"
+                  className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full shrink-0"
                 >
                   {creditCards.length}
                 </motion.span>
@@ -303,41 +303,41 @@ function App() {
             <motion.button
               onClick={() => setActiveTab('investments')}
               whileTap={{ scale: 0.97 }}
-              className={`flex items-center justify-center gap-1.5 py-2.5 px-3 sm:px-4 sm:flex-1 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${
+              className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-1 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 ${
                 activeTab === 'investments'
                   ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/25'
                   : 'text-zinc-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
+              <TrendingUp className="w-4 h-4 shrink-0" />
               <span className="hidden sm:inline">Inversiones</span>
-              <span className="sm:hidden">Inv.</span>
+              <span className="sm:hidden truncate">Inv.</span>
             </motion.button>
             <motion.button
               onClick={() => setActiveTab('emergency')}
               whileTap={{ scale: 0.97 }}
-              className={`flex items-center justify-center gap-1.5 py-2.5 px-3 sm:px-4 sm:flex-1 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${
+              className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-1 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 ${
                 activeTab === 'emergency'
                   ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-500/25'
                   : 'text-zinc-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
+              <Shield className="w-4 h-4 shrink-0" />
               <span className="hidden sm:inline">Emergencia</span>
-              <span className="sm:hidden">Emerg.</span>
+              <span className="sm:hidden truncate">Emerg.</span>
             </motion.button>
             <motion.button
               onClick={() => setActiveTab('pockets')}
               whileTap={{ scale: 0.97 }}
-              className={`flex items-center justify-center gap-1.5 py-2.5 px-3 sm:px-4 sm:flex-1 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${
+              className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-1 sm:px-4 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 ${
                 activeTab === 'pockets'
                   ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-500/25'
                   : 'text-zinc-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Wallet className="w-4 h-4 sm:w-5 sm:h-5" />
+              <Wallet className="w-4 h-4 shrink-0" />
               <span className="hidden sm:inline">Bolsillos</span>
-              <span className="sm:hidden">Bols.</span>
+              <span className="sm:hidden truncate">Bols.</span>
             </motion.button>
           </div>
         </motion.div>
