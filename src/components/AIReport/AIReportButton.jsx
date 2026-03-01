@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Loader2, AlertCircle, RefreshCw, Key, Calendar, MessageSquare, ChevronRight, Eye, EyeOff, FileText } from 'lucide-react';
+import { Sparkles, X, Loader2, AlertCircle, RefreshCw, Key, Calendar, MessageSquare, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { generateFinancialReport } from '../../services/geminiService';
 import { getTransactionsByDateRange } from '../../services/firestoreService';
 import { calculateSummary, calculateCategoryData } from '../../db/constants';
@@ -39,7 +39,6 @@ export default function AIReportButton({
   const [endYear, setEndYear] = useState(currentYear);
   const [endMonth, setEndMonth] = useState(currentMonth);
   const [additionalContext, setAdditionalContext] = useState('');
-  const [includeDetails, setIncludeDetails] = useState(false);
 
   const currentYearNum = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYearNum - 2 + i);
@@ -88,12 +87,12 @@ export default function AIReportButton({
         categoryData,
         dateRange,
         additionalContext: additionalContext.trim() || null,
-        includeDetails,
-        pockets: includeDetails ? pockets : [],
-        pocketTotals: includeDetails ? pocketTotals : null,
-        investments: includeDetails ? investments : [],
-        investmentTotals: includeDetails ? investmentTotals : null,
-        emergencyFund: includeDetails ? emergencyFund : null
+        includeDetails: true,
+        pockets,
+        pocketTotals,
+        investments,
+        investmentTotals,
+        emergencyFund
       }, apiKey.trim());
 
       if (result.success) {
@@ -330,25 +329,6 @@ export default function AIReportButton({
           Agrega información que Gemini deba considerar en el análisis
         </p>
       </div>
-
-      {/* Include Details Checkbox */}
-      <label className="flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/[0.07] transition-colors">
-        <input
-          type="checkbox"
-          checked={includeDetails}
-          onChange={(e) => setIncludeDetails(e.target.checked)}
-          className="mt-0.5 w-4 h-4 rounded accent-amber-500"
-        />
-        <div>
-          <div className="flex items-center gap-2 text-sm font-medium text-zinc-300">
-            <FileText className="w-4 h-4 text-amber-400" />
-            Incluir datos detallados
-          </div>
-          <p className="text-xs text-zinc-500 mt-1">
-            Envía descripciones de transacciones, bolsillos, inversiones y fondo de emergencia para un análisis más profundo
-          </p>
-        </div>
-      </label>
 
       {/* Generate Button */}
       <motion.button
