@@ -255,48 +255,46 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
       <Header />
 
-      <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      <main className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* Tab selector */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass rounded-2xl p-1.5"
+          className="glass rounded-2xl p-1.5 overflow-x-auto scrollbar-hide"
         >
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 min-w-max sm:min-w-0">
             <motion.button
               onClick={() => setActiveTab('transactions')}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-medium transition-all duration-300 ${
+              whileTap={{ scale: 0.97 }}
+              className={`flex items-center justify-center gap-1.5 py-2.5 px-3 sm:px-4 sm:flex-1 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                 activeTab === 'transactions'
                   ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-500/25'
                   : 'text-zinc-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Receipt className="w-5 h-5" />
+              <Receipt className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="hidden sm:inline">Gastos e Ingresos</span>
               <span className="sm:hidden">Gastos</span>
             </motion.button>
             <motion.button
               onClick={() => setActiveTab('creditCards')}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-medium transition-all duration-300 ${
+              whileTap={{ scale: 0.97 }}
+              className={`flex items-center justify-center gap-1.5 py-2.5 px-3 sm:px-4 sm:flex-1 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                 activeTab === 'creditCards'
                   ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg shadow-orange-500/25'
                   : 'text-zinc-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <FileWarning className="w-5 h-5" />
+              <FileWarning className="w-4 h-4 sm:w-5 sm:h-5" />
               Deudas
               {totalDebt > 0 && (
                 <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full"
+                  className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full"
                 >
                   {creditCards.length}
                 </motion.span>
@@ -304,63 +302,42 @@ function App() {
             </motion.button>
             <motion.button
               onClick={() => setActiveTab('investments')}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-medium transition-all duration-300 ${
+              whileTap={{ scale: 0.97 }}
+              className={`flex items-center justify-center gap-1.5 py-2.5 px-3 sm:px-4 sm:flex-1 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                 activeTab === 'investments'
                   ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/25'
                   : 'text-zinc-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <TrendingUp className="w-5 h-5" />
+              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="hidden sm:inline">Inversiones</span>
               <span className="sm:hidden">Inv.</span>
-              {investments.length > 0 && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="bg-emerald-500 text-white text-xs px-2 py-0.5 rounded-full"
-                >
-                  {investments.length}
-                </motion.span>
-              )}
             </motion.button>
             <motion.button
               onClick={() => setActiveTab('emergency')}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-medium transition-all duration-300 ${
+              whileTap={{ scale: 0.97 }}
+              className={`flex items-center justify-center gap-1.5 py-2.5 px-3 sm:px-4 sm:flex-1 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                 activeTab === 'emergency'
                   ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-500/25'
                   : 'text-zinc-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Shield className="w-5 h-5" />
+              <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="hidden sm:inline">Emergencia</span>
               <span className="sm:hidden">Emerg.</span>
             </motion.button>
             <motion.button
               onClick={() => setActiveTab('pockets')}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl font-medium transition-all duration-300 ${
+              whileTap={{ scale: 0.97 }}
+              className={`flex items-center justify-center gap-1.5 py-2.5 px-3 sm:px-4 sm:flex-1 rounded-xl text-sm font-medium transition-all duration-300 whitespace-nowrap ${
                 activeTab === 'pockets'
                   ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-500/25'
                   : 'text-zinc-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Wallet className="w-5 h-5" />
+              <Wallet className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="hidden sm:inline">Bolsillos</span>
               <span className="sm:hidden">Bols.</span>
-              {pockets.length > 0 && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="bg-violet-500 text-white text-xs px-2 py-0.5 rounded-full"
-                >
-                  {pockets.length}
-                </motion.span>
-              )}
             </motion.button>
           </div>
         </motion.div>

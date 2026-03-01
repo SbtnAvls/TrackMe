@@ -165,7 +165,7 @@ export default function Summary({ summary, accumulatedBalance, distribution, onU
       <motion.div
         variants={item}
         whileHover={{ scale: 1.01, y: -2 }}
-        className="relative overflow-hidden rounded-2xl p-6"
+        className="relative overflow-hidden rounded-2xl p-4 sm:p-6"
       >
         {/* Animated background */}
         <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 via-purple-600/20 to-fuchsia-600/20" />
@@ -197,7 +197,7 @@ export default function Summary({ summary, accumulatedBalance, distribution, onU
                 <p className="text-sm text-zinc-400">Saldo actual</p>
               </div>
               <motion.p
-                className={`text-4xl font-bold ${isPositive ? 'text-white' : 'text-red-400'}`}
+                className={`text-2xl sm:text-4xl font-bold ${isPositive ? 'text-white' : 'text-red-400'}`}
                 initial={{ scale: 0.9 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 200 }}
@@ -213,8 +213,8 @@ export default function Summary({ summary, accumulatedBalance, distribution, onU
               className="relative"
             >
               <div className={`absolute inset-0 ${isPositive ? 'bg-emerald-500' : 'bg-red-500'} rounded-2xl blur-xl opacity-30`} />
-              <div className={`relative p-4 rounded-2xl ${isPositive ? 'bg-emerald-500/20 border border-emerald-500/30' : 'bg-red-500/20 border border-red-500/30'}`}>
-                <PiggyBank className={`w-10 h-10 ${isPositive ? 'text-emerald-400' : 'text-red-400'}`} />
+              <div className={`relative p-3 sm:p-4 rounded-2xl ${isPositive ? 'bg-emerald-500/20 border border-emerald-500/30' : 'bg-red-500/20 border border-red-500/30'}`}>
+                <PiggyBank className={`w-7 h-7 sm:w-10 sm:h-10 ${isPositive ? 'text-emerald-400' : 'text-red-400'}`} />
               </div>
             </motion.div>
           </div>
@@ -479,7 +479,7 @@ export default function Summary({ summary, accumulatedBalance, distribution, onU
       </motion.div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         {/* Ingresos */}
         <motion.div
           variants={item}

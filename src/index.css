@@ -219,6 +219,16 @@ body {
   animation: float 3s ease-in-out infinite;
 }
 
+/* Hide scrollbar for tab bars */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Shimmer effect */
 @keyframes shimmer {
   0% {
