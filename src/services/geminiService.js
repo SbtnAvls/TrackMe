@@ -62,6 +62,12 @@ export async function generateFinancialReport(financialData, apiKey) {
     return `- ${card.bank} (${debtType}): Deuda $${balance.toLocaleString('es-MX')}${limit > 0 ? `, Límite $${limit.toLocaleString('es-MX')}, Uso ${usage}%` : ''}`;
   }).join('\n');
 
+  // Mapa de deudas por ID para resolver nombres
+  const cardMap = {};
+  creditCards.forEach(card => {
+    cardMap[String(card.id)] = card.bank;
+  });
+
   // Transacciones del período
   const maxTransactions = includeDetails ? 100 : 20;
   const transactionsList = transactions
@@ -72,7 +78,9 @@ export async function generateFinancialReport(financialData, apiKey) {
       const date = new Date(t.date).toLocaleDateString('es-MX');
       const desc = includeDetails && t.description ? ` — "${t.description}"` : '';
       const method = includeDetails && t.paymentMethod ? ` [${t.paymentMethod === 'cash' ? 'Efectivo' : 'Débito'}]` : '';
-      return `- [${date}] ${type}: ${t.category} - $${t.amount.toLocaleString('es-MX')}${method}${desc}`;
+      // Identificar a qué deuda se hizo el pago o cargo
+      const debtName = t.creditCardId ? ` → ${cardMap[String(t.creditCardId)] || 'Deuda desconocida'}` : '';
+      return `- [${date}] ${type}: ${t.category} - $${t.amount.toLocaleString('es-MX')}${debtName}${method}${desc}`;
     })
     .join('\n');
 
@@ -207,7 +215,7 @@ IMPORTANTE:
           temperature: 0.7,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 4096,
+          maxOutputTokens: 16384,
         }
       })
     });

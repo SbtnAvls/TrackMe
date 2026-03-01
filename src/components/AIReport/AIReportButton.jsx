@@ -407,11 +407,11 @@ export default function AIReportButton({
         prose-h1:text-2xl prose-h1:mb-4 prose-h1:mt-6
         prose-h2:text-xl prose-h2:mb-3 prose-h2:mt-5
         prose-h3:text-lg prose-h3:mb-2 prose-h3:mt-4
-        prose-p:text-zinc-300 prose-p:leading-relaxed
-        prose-li:text-zinc-300 prose-li:my-1
+        prose-p:text-zinc-200 prose-p:leading-relaxed
+        prose-li:text-zinc-200 prose-li:my-1
         prose-ul:my-2 prose-ol:my-2
         prose-strong:text-white prose-strong:font-semibold
-        prose-em:text-zinc-400
+        prose-em:text-zinc-300
         prose-hr:border-white/10 prose-hr:my-6"
     >
       <ReactMarkdown>{report}</ReactMarkdown>
