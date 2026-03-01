@@ -365,6 +365,11 @@ function App() {
                     totalDebt={totalDebt}
                     currentYear={year}
                     currentMonth={month}
+                    pockets={pockets}
+                    pocketTotals={pocketTotals}
+                    investments={investments}
+                    investmentTotals={investmentTotals}
+                    emergencyFund={emergencyFund}
                   />
                   <ExportButton
                     transactions={transactions}

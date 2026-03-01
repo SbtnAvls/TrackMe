@@ -1,4 +1,4 @@
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent';
 
 export async function generateFinancialReport(financialData, apiKey) {
   const {
@@ -9,7 +9,13 @@ export async function generateFinancialReport(financialData, apiKey) {
     totalDebt,
     categoryData,
     dateRange,
-    additionalContext
+    additionalContext,
+    includeDetails,
+    pockets,
+    pocketTotals,
+    investments,
+    investmentTotals,
+    emergencyFund
   } = financialData;
 
   const monthNames = [
@@ -57,15 +63,48 @@ export async function generateFinancialReport(financialData, apiKey) {
   }).join('\n');
 
   // Transacciones del período
+  const maxTransactions = includeDetails ? 100 : 20;
   const transactionsList = transactions
-    .slice(0, 20)
+    .slice(0, maxTransactions)
     .map(t => {
       const type = t.type === 'income' ? '📈 Ingreso' :
                    t.type === 'card_payment' ? '💳 Pago deuda' : '📉 Gasto';
       const date = new Date(t.date).toLocaleDateString('es-MX');
-      return `- [${date}] ${type}: ${t.category} - $${t.amount.toLocaleString('es-MX')}${t.description ? ` (${t.description})` : ''}`;
+      const desc = includeDetails && t.description ? ` — "${t.description}"` : '';
+      const method = includeDetails && t.paymentMethod ? ` [${t.paymentMethod === 'cash' ? 'Efectivo' : 'Débito'}]` : '';
+      return `- [${date}] ${type}: ${t.category} - $${t.amount.toLocaleString('es-MX')}${method}${desc}`;
     })
     .join('\n');
+
+  // Datos detallados opcionales
+  let detailedSections = '';
+  if (includeDetails) {
+    // Bolsillos
+    if (pockets && pockets.length > 0) {
+      const pocketsList = pockets.map(p => {
+        const progress = p.targetAmount > 0 ? ((p.currentAmount / p.targetAmount) * 100).toFixed(1) : 'N/A';
+        return `- ${p.name} (${p.category || 'otro'}): Ahorrado $${(p.currentAmount || 0).toLocaleString('es-MX')}${p.targetAmount ? ` / Meta $${p.targetAmount.toLocaleString('es-MX')} (${progress}%)` : ''}${p.notes ? ` — "${p.notes}"` : ''}`;
+      }).join('\n');
+      detailedSections += `\n### Bolsillos de ahorro\n${pocketsList}\n- Total ahorrado en bolsillos: $${(pocketTotals?.totalSaved || 0).toLocaleString('es-MX')}\n- Meta total: $${(pocketTotals?.totalTarget || 0).toLocaleString('es-MX')}\n`;
+    }
+
+    // Inversiones
+    if (investments && investments.length > 0) {
+      const investList = investments.map(inv => {
+        const invested = inv.quantity * inv.purchasePrice;
+        const current = inv.quantity * (inv.currentPrice || inv.purchasePrice);
+        const profit = current - invested;
+        const profitPct = invested > 0 ? ((profit / invested) * 100).toFixed(2) : '0';
+        return `- ${inv.symbol || inv.name} (${inv.type}): ${inv.quantity} unidades, Invertido $${invested.toLocaleString('es-MX')}, Valor actual $${current.toLocaleString('es-MX')}, Rendimiento ${profit >= 0 ? '+' : ''}${profitPct}%${inv.notes ? ` — "${inv.notes}"` : ''}`;
+      }).join('\n');
+      detailedSections += `\n### Inversiones\n${investList}\n- Total invertido: $${(investmentTotals?.totalInvested || 0).toLocaleString('es-MX')}\n- Valor actual total: $${(investmentTotals?.totalCurrent || 0).toLocaleString('es-MX')}\n- Ganancia/Pérdida: $${(investmentTotals?.totalProfit || 0).toLocaleString('es-MX')} (${(investmentTotals?.totalProfitPercent || 0).toFixed(2)}%)\n`;
+    }
+
+    // Fondo de emergencia
+    if (emergencyFund && emergencyFund.currentAmount > 0) {
+      detailedSections += `\n### Fondo de emergencia\n- Monto actual: $${emergencyFund.currentAmount.toLocaleString('es-MX')}\n- Meta de meses: ${emergencyFund.targetMonths || 'No definida'}\n- Gasto mensual estimado: $${(emergencyFund.monthlyExpense || 0).toLocaleString('es-MX')}\n`;
+    }
+  }
 
   // Contexto adicional del usuario
   const additionalContextSection = additionalContext ? `
@@ -99,9 +138,9 @@ ${incomesByCategory || 'No hay ingresos registrados'}
 ${debtsInfo || 'No hay deudas registradas'}
 - Deuda total actual: $${totalDebt.toLocaleString('es-MX')}
 
-### Transacciones del período (hasta 20)
+### Transacciones del período (hasta ${maxTransactions})
 ${transactionsList || 'No hay transacciones en este período'}
-
+${detailedSections}
 ### Estadísticas
 - Número de transacciones: ${transactions.length}
 - Número de deudas activas: ${creditCards.length}
