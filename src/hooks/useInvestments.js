@@ -1,99 +1,89 @@
-import { useState, useEffect, useCallback } from 'react';
-import { db } from '../db/database';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useAuth } from '../context/AuthContext';
+import {
+  addInvestment as addInvestmentFS,
+  updateInvestment as updateInvestmentFS,
+  deleteInvestment as deleteInvestmentFS,
+  subscribeInvestments
+} from '../services/firestoreService';
 
 export function useInvestments() {
+  const { user } = useAuth();
   const [investments, setInvestments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Cargar inversiones
-  const loadInvestments = useCallback(async () => {
-    try {
-      const data = await db.investments.orderBy('createdAt').reverse().toArray();
-      setInvestments(data);
-    } catch (error) {
-      console.error('Error loading investments:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    loadInvestments();
-  }, [loadInvestments]);
+    if (!user) {
+      setInvestments([]);
+      setIsLoading(false);
+      return;
+    }
 
-  // Agregar inversión
+    setIsLoading(true);
+    return subscribeInvestments(user.uid, (items) => {
+      setInvestments(items);
+      setIsLoading(false);
+    }, (error) => {
+      console.error('Error loading investments:', error);
+      setIsLoading(false);
+    });
+  }, [user]);
+
   const addInvestment = useCallback(async (investmentData) => {
-    try {
-      const newInvestment = {
-        ...investmentData,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      const id = await db.investments.add(newInvestment);
-      await loadInvestments();
-      return id;
-    } catch (error) {
-      console.error('Error adding investment:', error);
-      throw error;
-    }
-  }, [loadInvestments]);
+    if (!user) return;
+    const id = await addInvestmentFS(user.uid, {
+      ...investmentData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    return id;
+  }, [user]);
 
-  // Actualizar inversión
   const updateInvestment = useCallback(async (id, investmentData) => {
-    try {
-      await db.investments.update(id, {
-        ...investmentData,
-        updatedAt: new Date()
-      });
-      await loadInvestments();
-    } catch (error) {
-      console.error('Error updating investment:', error);
-      throw error;
-    }
-  }, [loadInvestments]);
+    if (!user) return;
+    await updateInvestmentFS(user.uid, id, {
+      ...investmentData,
+      updatedAt: new Date().toISOString()
+    });
+  }, [user]);
 
-  // Eliminar inversión
   const deleteInvestment = useCallback(async (id) => {
-    try {
-      await db.investments.delete(id);
-      await loadInvestments();
-    } catch (error) {
-      console.error('Error deleting investment:', error);
-      throw error;
-    }
-  }, [loadInvestments]);
+    if (!user) return;
+    await deleteInvestmentFS(user.uid, id);
+  }, [user]);
 
-  // Calcular totales
-  const totals = investments.reduce((acc, inv) => {
-    const invested = inv.quantity * inv.purchasePrice;
-    const current = inv.quantity * (inv.currentPrice || inv.purchasePrice);
-    const profit = current - invested;
-    const profitPercent = invested > 0 ? (profit / invested) * 100 : 0;
+  const totals = useMemo(() => {
+    const result = investments.reduce((acc, inv) => {
+      const invested = inv.quantity * inv.purchasePrice;
+      const current = inv.quantity * (inv.currentPrice || inv.purchasePrice);
+      const profit = current - invested;
 
-    acc.totalInvested += invested;
-    acc.totalCurrent += current;
-    acc.totalProfit += profit;
+      acc.totalInvested += invested;
+      acc.totalCurrent += current;
+      acc.totalProfit += profit;
 
-    // Por tipo
-    if (!acc.byType[inv.type]) {
-      acc.byType[inv.type] = { invested: 0, current: 0, profit: 0, count: 0 };
-    }
-    acc.byType[inv.type].invested += invested;
-    acc.byType[inv.type].current += current;
-    acc.byType[inv.type].profit += profit;
-    acc.byType[inv.type].count += 1;
+      if (!acc.byType[inv.type]) {
+        acc.byType[inv.type] = { invested: 0, current: 0, profit: 0, count: 0 };
+      }
+      acc.byType[inv.type].invested += invested;
+      acc.byType[inv.type].current += current;
+      acc.byType[inv.type].profit += profit;
+      acc.byType[inv.type].count += 1;
 
-    return acc;
-  }, {
-    totalInvested: 0,
-    totalCurrent: 0,
-    totalProfit: 0,
-    byType: {}
-  });
+      return acc;
+    }, {
+      totalInvested: 0,
+      totalCurrent: 0,
+      totalProfit: 0,
+      byType: {}
+    });
 
-  totals.totalProfitPercent = totals.totalInvested > 0
-    ? (totals.totalProfit / totals.totalInvested) * 100
-    : 0;
+    result.totalProfitPercent = result.totalInvested > 0
+      ? (result.totalProfit / result.totalInvested) * 100
+      : 0;
+
+    return result;
+  }, [investments]);
 
   return {
     investments,

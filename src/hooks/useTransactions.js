@@ -1,115 +1,144 @@
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/database';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
+import {
+  addTransaction as addTransactionFS,
+  updateTransaction as updateTransactionFS,
+  deleteTransaction as deleteTransactionFS,
+  subscribeTransactionsByMonth,
+  subscribeTransactionsUpTo,
+  subscribeTransfersUpTo
+} from '../services/firestoreService';
 
 export function useTransactions(year, month) {
-  const startDate = new Date(year, month, 1);
-  const endDate = new Date(year, month + 1, 0, 23, 59, 59);
+  const { user } = useAuth();
+  const [transactions, setTransactions] = useState(null);
+  const [txnsUpTo, setTxnsUpTo] = useState(null);
+  const [transfersUpTo, setTransfersUpTo] = useState(null);
 
-  const transactions = useLiveQuery(
-    () => db.transactions
-      .where('date')
-      .between(startDate.toISOString(), endDate.toISOString(), true, true)
-      .reverse()
-      .sortBy('date'),
+  const endDateISO = useMemo(
+    () => new Date(year, month + 1, 0, 23, 59, 59).toISOString(),
     [year, month]
   );
 
-  // Balance acumulado: todas las transacciones + avances de crédito hasta el final del mes
-  // IMPORTANTE: Los gastos con tarjeta de crédito NO afectan el saldo (no salió dinero del bolsillo)
-  // Los avances de crédito (credit_to_cash, credit_to_debit) SÍ suman al saldo (dinero líquido nuevo)
-  const accumulatedBalance = useLiveQuery(
-    async () => {
-      const allTransactions = await db.transactions
-        .where('date')
-        .belowOrEqual(endDate.toISOString())
-        .toArray();
+  useEffect(() => {
+    if (!user) {
+      setTransactions([]);
+      setTxnsUpTo([]);
+      setTransfersUpTo([]);
+      return;
+    }
 
-      const txBalance = allTransactions.reduce((acc, t) => {
-        if (t.type === 'income') {
-          return acc + t.amount;
-        } else if (t.type === 'expense' && t.creditCardId) {
-          return acc;
-        } else {
-          return acc - t.amount;
-        }
-      }, 0);
+    setTransactions(null);
+    setTxnsUpTo(null);
+    setTransfersUpTo(null);
 
-      // Avances de crédito traen dinero líquido al usuario
-      const allTransfers = await db.transfers
-        .where('date')
-        .belowOrEqual(endDate.toISOString())
-        .toArray();
+    const unsub1 = subscribeTransactionsByMonth(
+      user.uid, year, month, setTransactions,
+      (e) => console.error('Error loading monthly transactions:', e)
+    );
 
-      const advanceBalance = allTransfers
-        .filter(t => t.type === 'credit_to_cash' || t.type === 'credit_to_debit')
-        .reduce((sum, t) => sum + t.amount, 0);
+    const unsub2 = subscribeTransactionsUpTo(
+      user.uid, endDateISO, setTxnsUpTo,
+      (e) => console.error('Error loading transactions for balance:', e)
+    );
 
-      return txBalance + advanceBalance;
-    },
-    [year, month]
-  );
+    const unsub3 = subscribeTransfersUpTo(
+      user.uid, endDateISO, setTransfersUpTo,
+      (e) => console.error('Error loading transfers for balance:', e)
+    );
 
-  const addTransaction = async (transaction) => {
+    return () => { unsub1(); unsub2(); unsub3(); };
+  }, [user, year, month, endDateISO]);
+
+  const accumulatedBalance = useMemo(() => {
+    if (!txnsUpTo || !transfersUpTo) return 0;
+
+    const txBalance = txnsUpTo.reduce((acc, t) => {
+      if (t.type === 'income') return acc + t.amount;
+      if (t.type === 'expense' && t.creditCardId) return acc;
+      return acc - t.amount;
+    }, 0);
+
+    const advanceBalance = transfersUpTo
+      .filter(t => t.type === 'credit_to_cash' || t.type === 'credit_to_debit')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    return txBalance + advanceBalance;
+  }, [txnsUpTo, transfersUpTo]);
+
+  const addTransaction = useCallback(async (transaction) => {
+    if (!user) return;
     const dateWithTime = transaction.date + 'T12:00:00';
-    return await db.transactions.add({
+    return await addTransactionFS(user.uid, {
       ...transaction,
       date: new Date(dateWithTime).toISOString(),
       createdAt: new Date().toISOString()
     });
-  };
+  }, [user]);
 
-  const updateTransaction = async (id, updates) => {
+  const updateTransaction = useCallback(async (id, updates) => {
+    if (!user) return;
     if (updates.date) {
       const dateWithTime = updates.date + 'T12:00:00';
-      updates.date = new Date(dateWithTime).toISOString();
+      updates = { ...updates, date: new Date(dateWithTime).toISOString() };
     }
-    return await db.transactions.update(id, updates);
-  };
+    return await updateTransactionFS(user.uid, id, updates);
+  }, [user]);
 
-  const deleteTransaction = async (id) => {
-    return await db.transactions.delete(id);
-  };
+  const deleteTransaction = useCallback(async (id) => {
+    if (!user) return;
+    return await deleteTransactionFS(user.uid, id);
+  }, [user]);
 
-  // Summary del mes (incluye todos los gastos para ver el total gastado)
-  const summary = transactions?.reduce(
-    (acc, t) => {
-      if (t.type === 'income') {
-        acc.totalIncome += t.amount;
-      } else if (t.type === 'expense') {
-        acc.totalExpense += t.amount;
-        if (t.creditCardId) {
-          acc.creditCardExpense += t.amount;
-        } else {
-          acc.cashExpense += t.amount;
+  const summary = useMemo(() => {
+    if (!transactions) {
+      return { totalIncome: 0, totalExpense: 0, cashExpense: 0, creditCardExpense: 0, cardPayments: 0, balance: 0 };
+    }
+
+    return transactions.reduce(
+      (acc, t) => {
+        if (t.type === 'income') {
+          acc.totalIncome += t.amount;
+        } else if (t.type === 'expense') {
+          acc.totalExpense += t.amount;
+          if (t.creditCardId) {
+            acc.creditCardExpense += t.amount;
+          } else {
+            acc.cashExpense += t.amount;
+          }
+        } else if (t.type === 'card_payment') {
+          acc.cardPayments += t.amount;
         }
-      } else if (t.type === 'card_payment') {
-        acc.cardPayments += t.amount;
-      }
-      acc.balance = acc.totalIncome - acc.cashExpense - acc.cardPayments;
-      return acc;
-    },
-    { totalIncome: 0, totalExpense: 0, cashExpense: 0, creditCardExpense: 0, cardPayments: 0, balance: 0 }
-  ) || { totalIncome: 0, totalExpense: 0, cashExpense: 0, creditCardExpense: 0, cardPayments: 0, balance: 0 };
+        acc.balance = acc.totalIncome - acc.cashExpense - acc.cardPayments;
+        return acc;
+      },
+      { totalIncome: 0, totalExpense: 0, cashExpense: 0, creditCardExpense: 0, cardPayments: 0, balance: 0 }
+    );
+  }, [transactions]);
 
-  const categoryData = transactions?.reduce((acc, t) => {
-    if (t.type === 'card_payment') return acc; // No incluir pagos a tarjeta en las categorías
-    const existing = acc.find(item => item.category === t.category && item.type === t.type);
-    if (existing) {
-      existing.amount += t.amount;
-    } else {
-      acc.push({ category: t.category, type: t.type, amount: t.amount });
-    }
-    return acc;
-  }, []) || [];
+  const categoryData = useMemo(() => {
+    if (!transactions) return [];
+
+    return transactions.reduce((acc, t) => {
+      if (t.type === 'card_payment') return acc;
+      const existing = acc.find(item => item.category === t.category && item.type === t.type);
+      if (existing) {
+        existing.amount += t.amount;
+      } else {
+        acc.push({ category: t.category, type: t.type, amount: t.amount });
+      }
+      return acc;
+    }, []);
+  }, [transactions]);
 
   return {
     transactions: transactions || [],
     summary,
     categoryData,
-    accumulatedBalance: accumulatedBalance || 0,
+    accumulatedBalance,
     addTransaction,
     updateTransaction,
     deleteTransaction,
-    isLoading: transactions === undefined || accumulatedBalance === undefined
+    isLoading: transactions === null || txnsUpTo === null || transfersUpTo === null
   };
 }

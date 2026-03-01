@@ -4,7 +4,7 @@ import { TrendingUp, TrendingDown, Filter, Inbox, PieChart, Wallet } from 'lucid
 import InvestmentItem from './InvestmentItem';
 import { formatCurrency } from '../../utils/formatters';
 import { usePrivacy } from '../../context/PrivacyContext';
-import { INVESTMENT_TYPES } from '../../db/database';
+import { INVESTMENT_TYPES } from '../../db/constants';
 
 const filterOptions = [
   { id: 'all', label: 'Todas' },

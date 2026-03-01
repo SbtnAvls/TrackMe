@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Pencil, Trash2, TrendingUp, TrendingDown, Bitcoin, LineChart, Landmark, DollarSign, Gem, Coins, FileText, Home, Wallet, RefreshCw } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { usePrivacy } from '../../context/PrivacyContext';
-import { INVESTMENT_TYPES } from '../../db/database';
+import { INVESTMENT_TYPES } from '../../db/constants';
 
 const iconMap = {
   Bitcoin,

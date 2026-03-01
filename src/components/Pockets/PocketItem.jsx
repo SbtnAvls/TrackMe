@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Minus, Check, X, Edit2, Trash2, Calendar, Target, TrendingUp, History, ChevronDown, ChevronUp, Wallet, Shield, Plane, Car, Home, GraduationCap, Smartphone, Heart, Gift, PartyPopper, Palmtree, Briefcase } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { usePrivacy } from '../../context/PrivacyContext';
-import { POCKET_CATEGORIES } from '../../db/database';
+import { POCKET_CATEGORIES } from '../../db/constants';
 
 const iconMap = {
   Shield,

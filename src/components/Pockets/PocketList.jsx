@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Wallet, Plus, Target, TrendingUp, PiggyBank, Filter, Search, X } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
 import { usePrivacy } from '../../context/PrivacyContext';
-import { POCKET_CATEGORIES } from '../../db/database';
+import { POCKET_CATEGORIES } from '../../db/constants';
 import PocketForm from './PocketForm';
 import PocketItem from './PocketItem';
 

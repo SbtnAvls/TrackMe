@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Loader2, AlertCircle, RefreshCw, Key, Calendar, MessageSquare, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { generateFinancialReport } from '../../services/geminiService';
-import { getTransactionsByDateRange, calculateSummary, calculateCategoryData } from '../../db/database';
+import { getTransactionsByDateRange } from '../../services/firestoreService';
+import { calculateSummary, calculateCategoryData } from '../../db/constants';
+import { useAuth } from '../../context/AuthContext';
 import ReactMarkdown from 'react-markdown';
 
 const monthNames = [
@@ -17,6 +19,7 @@ export default function AIReportButton({
   currentYear,
   currentMonth
 }) {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState('config'); // 'config' | 'loading' | 'report' | 'error'
   const [report, setReport] = useState(null);
@@ -58,7 +61,7 @@ export default function AIReportButton({
       }
 
       // Obtener transacciones del rango
-      const transactions = await getTransactionsByDateRange(sYear, sMonth, eYear, eMonth);
+      const transactions = await getTransactionsByDateRange(user.uid, sYear, sMonth, eYear, eMonth);
       const summary = calculateSummary(transactions);
       const categoryData = calculateCategoryData(transactions);
 

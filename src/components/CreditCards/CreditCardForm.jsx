@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { CreditCard, X, Sparkles, User, Landmark, Wallet } from 'lucide-react';
-import { DEBT_TYPES } from '../../db/database';
+import { DEBT_TYPES } from '../../db/constants';
 
 const iconMap = {
   CreditCard: CreditCard,

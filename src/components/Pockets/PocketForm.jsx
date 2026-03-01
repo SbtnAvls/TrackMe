@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, X, Wallet, Shield, Plane, Car, Home, GraduationCap, Smartphone, Heart, Gift, PartyPopper, Palmtree, Briefcase } from 'lucide-react';
-import { POCKET_CATEGORIES } from '../../db/database';
+import { POCKET_CATEGORIES } from '../../db/constants';
 import { formatDateForInput } from '../../utils/formatters';
 
 const iconMap = {

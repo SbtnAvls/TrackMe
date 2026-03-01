@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, TrendingDown, Wallet, PiggyBank, Sparkles, Banknote, Building2, Pencil, Check, X, HandCoins, Scale, Landmark, ArrowRightLeft, CreditCard, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatCurrency, formatDate, formatDateForInput } from '../../utils/formatters';
 import { usePrivacy } from '../../context/PrivacyContext';
-import { TRANSFER_TYPES } from '../../db/database';
+import { TRANSFER_TYPES } from '../../db/constants';
 
 const container = {
   hidden: { opacity: 0 },

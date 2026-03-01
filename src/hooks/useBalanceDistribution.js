@@ -1,59 +1,57 @@
 import { useState, useEffect, useCallback } from 'react';
-import { db } from '../db/database';
+import { useAuth } from '../context/AuthContext';
+import { getSetting, putSetting, subscribeSetting } from '../services/firestoreService';
 
 const SETTINGS_KEY = 'balanceDistribution';
 
 export function useBalanceDistribution() {
+  const { user } = useAuth();
   const [distribution, setDistribution] = useState({ cash: 0 });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadDistribution = async () => {
-      try {
-        const saved = await db.settings.get(SETTINGS_KEY);
-        if (saved) {
-          setDistribution({ cash: saved.cash || 0 });
-        }
-      } catch (error) {
-        console.error('Error loading balance distribution:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    if (!user) {
+      setDistribution({ cash: 0 });
+      setIsLoading(false);
+      return;
+    }
 
-    loadDistribution();
-  }, []);
+    setIsLoading(true);
+    return subscribeSetting(user.uid, SETTINGS_KEY, (data) => {
+      setDistribution({ cash: data?.cash || 0 });
+      setIsLoading(false);
+    }, (error) => {
+      console.error('Error loading balance distribution:', error);
+      setIsLoading(false);
+    });
+  }, [user]);
 
-  // Override manual del efectivo
   const updateCash = useCallback(async (amount) => {
+    if (!user) return;
     try {
-      await db.settings.put({
-        key: SETTINGS_KEY,
+      await putSetting(user.uid, SETTINGS_KEY, {
         cash: amount,
-        updatedAt: new Date()
+        updatedAt: new Date().toISOString()
       });
-      setDistribution({ cash: amount });
     } catch (error) {
       console.error('Error updating cash:', error);
     }
-  }, []);
+  }, [user]);
 
-  // Ajuste por delta (lee de DB para evitar race conditions)
   const adjustCash = useCallback(async (delta) => {
+    if (!user) return;
     try {
-      const saved = await db.settings.get(SETTINGS_KEY);
+      const saved = await getSetting(user.uid, SETTINGS_KEY);
       const current = saved?.cash || 0;
       const newCash = current + delta;
-      await db.settings.put({
-        key: SETTINGS_KEY,
+      await putSetting(user.uid, SETTINGS_KEY, {
         cash: newCash,
-        updatedAt: new Date()
+        updatedAt: new Date().toISOString()
       });
-      setDistribution({ cash: newCash });
     } catch (error) {
       console.error('Error adjusting cash:', error);
     }
-  }, []);
+  }, [user]);
 
   return {
     distribution,

@@ -1,148 +1,145 @@
-import { useState, useEffect, useCallback } from 'react';
-import { db } from '../db/database';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useAuth } from '../context/AuthContext';
+import {
+  addPocket as addPocketFS,
+  updatePocket as updatePocketFS,
+  deletePocket as deletePocketFS,
+  subscribePockets,
+  addPocketMovement,
+  subscribePocketMovements
+} from '../services/firestoreService';
 
 export function usePockets() {
-  const [pockets, setPockets] = useState([]);
+  const { user } = useAuth();
+  const [rawPockets, setRawPockets] = useState([]);
   const [movements, setMovements] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Cargar bolsillos y movimientos
-  const loadData = useCallback(async () => {
-    try {
-      const pocketsData = await db.pockets.orderBy('createdAt').reverse().toArray();
-      const movementsData = await db.pocketMovements.orderBy('date').reverse().toArray();
-
-      // Calcular el monto actual de cada bolsillo basado en movimientos
-      const pocketsWithBalance = pocketsData.map(pocket => {
-        const pocketMovements = movementsData.filter(m => m.pocketId === pocket.id);
-        const currentAmount = pocketMovements.reduce((sum, m) => {
-          return m.type === 'deposit' ? sum + m.amount : sum - m.amount;
-        }, 0);
-        return { ...pocket, currentAmount };
-      });
-
-      setPockets(pocketsWithBalance);
-      setMovements(movementsData);
-    } catch (error) {
-      console.error('Error loading pockets:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (!user) {
+      setRawPockets([]);
+      setMovements([]);
+      setIsLoading(false);
+      return;
+    }
 
-  // Crear bolsillo
+    setIsLoading(true);
+    let pocketsLoaded = false;
+    let movementsLoaded = false;
+
+    const checkLoaded = () => {
+      if (pocketsLoaded && movementsLoaded) setIsLoading(false);
+    };
+
+    const unsub1 = subscribePockets(user.uid, (items) => {
+      setRawPockets(items);
+      pocketsLoaded = true;
+      checkLoaded();
+    }, (error) => {
+      console.error('Error loading pockets:', error);
+      pocketsLoaded = true;
+      checkLoaded();
+    });
+
+    const unsub2 = subscribePocketMovements(user.uid, (items) => {
+      setMovements(items);
+      movementsLoaded = true;
+      checkLoaded();
+    }, (error) => {
+      console.error('Error loading pocket movements:', error);
+      movementsLoaded = true;
+      checkLoaded();
+    });
+
+    return () => { unsub1(); unsub2(); };
+  }, [user]);
+
+  const pockets = useMemo(() => {
+    return rawPockets.map(pocket => {
+      const pocketMovements = movements.filter(m => String(m.pocketId) === String(pocket.id));
+      const currentAmount = pocketMovements.reduce((sum, m) => {
+        return m.type === 'deposit' ? sum + m.amount : sum - m.amount;
+      }, 0);
+      return { ...pocket, currentAmount };
+    });
+  }, [rawPockets, movements]);
+
   const addPocket = useCallback(async (pocketData) => {
-    try {
-      const newPocket = {
-        ...pocketData,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      const id = await db.pockets.add(newPocket);
+    if (!user) return;
+    const id = await addPocketFS(user.uid, {
+      ...pocketData,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
 
-      // Si hay monto inicial, crear movimiento de depósito
-      if (pocketData.initialAmount > 0) {
-        await db.pocketMovements.add({
-          pocketId: id,
-          type: 'deposit',
-          amount: pocketData.initialAmount,
-          description: 'Monto inicial',
-          date: new Date(),
-          createdAt: new Date()
-        });
-      }
-
-      await loadData();
-      return id;
-    } catch (error) {
-      console.error('Error adding pocket:', error);
-      throw error;
-    }
-  }, [loadData]);
-
-  // Actualizar bolsillo
-  const updatePocket = useCallback(async (id, pocketData) => {
-    try {
-      await db.pockets.update(id, {
-        ...pocketData,
-        updatedAt: new Date()
-      });
-      await loadData();
-    } catch (error) {
-      console.error('Error updating pocket:', error);
-      throw error;
-    }
-  }, [loadData]);
-
-  // Eliminar bolsillo
-  const deletePocket = useCallback(async (id) => {
-    try {
-      // Eliminar movimientos asociados
-      await db.pocketMovements.where('pocketId').equals(id).delete();
-      // Eliminar bolsillo
-      await db.pockets.delete(id);
-      await loadData();
-    } catch (error) {
-      console.error('Error deleting pocket:', error);
-      throw error;
-    }
-  }, [loadData]);
-
-  // Agregar dinero a un bolsillo
-  const depositToPocket = useCallback(async (pocketId, amount, description = '') => {
-    try {
-      await db.pocketMovements.add({
-        pocketId,
+    if (pocketData.initialAmount > 0) {
+      await addPocketMovement(user.uid, {
+        pocketId: id,
         type: 'deposit',
-        amount,
-        description,
-        date: new Date(),
-        createdAt: new Date()
+        amount: pocketData.initialAmount,
+        description: 'Monto inicial',
+        date: new Date().toISOString(),
+        createdAt: new Date().toISOString()
       });
-      await loadData();
-    } catch (error) {
-      console.error('Error depositing to pocket:', error);
-      throw error;
     }
-  }, [loadData]);
 
-  // Retirar dinero de un bolsillo
+    return id;
+  }, [user]);
+
+  const updatePocket = useCallback(async (id, pocketData) => {
+    if (!user) return;
+    await updatePocketFS(user.uid, id, {
+      ...pocketData,
+      updatedAt: new Date().toISOString()
+    });
+  }, [user]);
+
+  const deletePocket = useCallback(async (id) => {
+    if (!user) return;
+    await deletePocketFS(user.uid, id);
+  }, [user]);
+
+  const depositToPocket = useCallback(async (pocketId, amount, description = '') => {
+    if (!user) return;
+    await addPocketMovement(user.uid, {
+      pocketId,
+      type: 'deposit',
+      amount,
+      description,
+      date: new Date().toISOString(),
+      createdAt: new Date().toISOString()
+    });
+  }, [user]);
+
   const withdrawFromPocket = useCallback(async (pocketId, amount, description = '') => {
-    try {
-      await db.pocketMovements.add({
-        pocketId,
-        type: 'withdraw',
-        amount,
-        description,
-        date: new Date(),
-        createdAt: new Date()
-      });
-      await loadData();
-    } catch (error) {
-      console.error('Error withdrawing from pocket:', error);
-      throw error;
-    }
-  }, [loadData]);
+    if (!user) return;
+    await addPocketMovement(user.uid, {
+      pocketId,
+      type: 'withdraw',
+      amount,
+      description,
+      date: new Date().toISOString(),
+      createdAt: new Date().toISOString()
+    });
+  }, [user]);
 
-  // Obtener movimientos de un bolsillo específico
   const getPocketMovements = useCallback((pocketId) => {
-    return movements.filter(m => m.pocketId === pocketId);
+    return movements.filter(m => String(m.pocketId) === String(pocketId));
   }, [movements]);
 
-  // Calcular totales
-  const totals = pockets.reduce((acc, pocket) => {
-    acc.totalSaved += pocket.currentAmount;
-    acc.totalTarget += pocket.targetAmount || 0;
-    return acc;
-  }, { totalSaved: 0, totalTarget: 0 });
+  const totals = useMemo(() => {
+    const result = pockets.reduce((acc, pocket) => {
+      acc.totalSaved += pocket.currentAmount;
+      acc.totalTarget += pocket.targetAmount || 0;
+      return acc;
+    }, { totalSaved: 0, totalTarget: 0 });
 
-  totals.overallProgress = totals.totalTarget > 0
-    ? (totals.totalSaved / totals.totalTarget) * 100
-    : 0;
+    result.overallProgress = result.totalTarget > 0
+      ? (result.totalSaved / result.totalTarget) * 100
+      : 0;
+
+    return result;
+  }, [pockets]);
 
   return {
     pockets,

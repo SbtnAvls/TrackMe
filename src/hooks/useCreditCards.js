@@ -1,41 +1,56 @@
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/database';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
+import {
+  addCreditCard as addCreditCardFS,
+  updateCreditCard as updateCreditCardFS,
+  deleteCreditCard as deleteCreditCardFS,
+  subscribeCreditCards,
+  subscribeAllTransactions,
+  subscribeTransfers
+} from '../services/firestoreService';
 
 export function useCreditCards() {
-  // Obtener tarjetas, transacciones asociadas y avances de crédito
-  const data = useLiveQuery(async () => {
-    const cards = await db.creditCards.orderBy('createdAt').reverse().toArray();
-    const cardTransactions = await db.transactions
-      .where('creditCardId')
-      .above(0)
-      .toArray();
+  const { user } = useAuth();
+  const [rawCards, setRawCards] = useState(null);
+  const [allTransactions, setAllTransactions] = useState([]);
+  const [allTransfers, setAllTransfers] = useState([]);
 
-    // Avances de crédito desde la tabla de transferencias
-    const creditTransfers = await db.transfers
-      .where('creditCardId')
-      .above(0)
-      .toArray();
+  useEffect(() => {
+    if (!user) {
+      setRawCards([]);
+      setAllTransactions([]);
+      setAllTransfers([]);
+      return;
+    }
 
-    // Calcular saldo dinámico para cada tarjeta
-    const cardsWithBalance = cards.map(card => {
-      const cardTxns = cardTransactions.filter(t => t.creditCardId === card.id);
+    const unsub1 = subscribeCreditCards(user.uid, setRawCards);
+    const unsub2 = subscribeAllTransactions(user.uid, setAllTransactions);
+    const unsub3 = subscribeTransfers(user.uid, setAllTransfers);
 
-      // Gastos con esta tarjeta (aumentan deuda)
+    return () => { unsub1(); unsub2(); unsub3(); };
+  }, [user]);
+
+  const creditCards = useMemo(() => {
+    if (!rawCards) return [];
+
+    const cardTransactions = allTransactions.filter(t => t.creditCardId);
+    const creditTransfers = allTransfers.filter(t => t.creditCardId);
+
+    return rawCards.map(card => {
+      const cardTxns = cardTransactions.filter(t => String(t.creditCardId) === String(card.id));
+
       const expenses = cardTxns
         .filter(t => t.type === 'expense')
         .reduce((sum, t) => sum + t.amount, 0);
 
-      // Pagos a esta tarjeta (reducen deuda)
       const payments = cardTxns
         .filter(t => t.type === 'card_payment')
         .reduce((sum, t) => sum + t.amount, 0);
 
-      // Avances de crédito de esta tarjeta (aumentan deuda)
       const advances = creditTransfers
-        .filter(t => t.creditCardId === card.id)
+        .filter(t => String(t.creditCardId) === String(card.id))
         .reduce((sum, t) => sum + t.amount, 0);
 
-      // Saldo dinámico = saldo inicial + gastos + avances - pagos
       const dynamicBalance = (card.currentBalance || 0) + expenses + advances - payments;
 
       return {
@@ -44,33 +59,29 @@ export function useCreditCards() {
         expensesTotal: expenses,
         advancesTotal: advances,
         paymentsTotal: payments,
-        dynamicBalance: Math.max(0, dynamicBalance) // No puede ser negativo
+        dynamicBalance: Math.max(0, dynamicBalance)
       };
     });
+  }, [rawCards, allTransactions, allTransfers]);
 
-    return cardsWithBalance;
-  });
-
-  const creditCards = data || [];
-
-  const addCreditCard = async (card) => {
-    return await db.creditCards.add({
+  const addCreditCard = useCallback(async (card) => {
+    if (!user) return;
+    return await addCreditCardFS(user.uid, {
       ...card,
       currentBalance: card.currentBalance || 0,
       createdAt: new Date().toISOString()
     });
-  };
+  }, [user]);
 
-  const updateCreditCard = async (id, updates) => {
-    return await db.creditCards.update(id, updates);
-  };
+  const updateCreditCard = useCallback(async (id, updates) => {
+    if (!user) return;
+    return await updateCreditCardFS(user.uid, id, updates);
+  }, [user]);
 
-  const deleteCreditCard = async (id) => {
-    // También eliminar transacciones y transferencias asociadas a esta tarjeta
-    await db.transactions.where('creditCardId').equals(id).delete();
-    await db.transfers.where('creditCardId').equals(id).delete();
-    return await db.creditCards.delete(id);
-  };
+  const deleteCreditCard = useCallback(async (id) => {
+    if (!user) return;
+    return await deleteCreditCardFS(user.uid, id);
+  }, [user]);
 
   const totalDebt = creditCards.reduce((sum, card) => sum + (card.dynamicBalance || 0), 0);
   const totalLimit = creditCards.reduce((sum, card) => sum + (card.creditLimit || 0), 0);
@@ -84,6 +95,6 @@ export function useCreditCards() {
     addCreditCard,
     updateCreditCard,
     deleteCreditCard,
-    isLoading: data === undefined
+    isLoading: rawCards === null
   };
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, X, CreditCard, Zap, User, Landmark, Wallet, Banknote, Building2 } from 'lucide-react';
-import { getCategories, DEBT_PAYMENT_CATEGORY } from '../../db/database';
+import { getCategories, DEBT_PAYMENT_CATEGORY } from '../../db/constants';
 import { formatDateForInput } from '../../utils/formatters';
 
 export default function TransactionForm({ onSubmit, initialData, onCancel, creditCards = [] }) {

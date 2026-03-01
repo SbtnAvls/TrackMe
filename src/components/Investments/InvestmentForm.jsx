@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, X, TrendingUp, Bitcoin, LineChart, Landmark, DollarSign, Gem, Coins, FileText, Home, Wallet } from 'lucide-react';
-import { INVESTMENT_TYPES, POPULAR_SYMBOLS } from '../../db/database';
+import { INVESTMENT_TYPES, POPULAR_SYMBOLS } from '../../db/constants';
 import { formatDateForInput } from '../../utils/formatters';
 
 const iconMap = {

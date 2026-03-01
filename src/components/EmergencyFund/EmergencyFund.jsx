@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Plus, Minus, Settings, Lightbulb, Check, X, AlertTriangle, TrendingUp, Calendar, Target, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatters';
 import { usePrivacy } from '../../context/PrivacyContext';
-import { EMERGENCY_FUND_TIPS } from '../../db/database';
+import { EMERGENCY_FUND_TIPS } from '../../db/constants';
 
 export default function EmergencyFund({
   fund,
