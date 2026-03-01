@@ -48,7 +48,7 @@ export default function LoginScreen() {
             </p>
             <h2 className="text-2xl font-semibold text-white mt-2">Bienvenido</h2>
             <p className="text-sm text-zinc-400 mt-2">
-              Conéctate con tu cuenta de Google para sincronizar tus datos y mantenerlos seguros.
+              Inicia sesión con tu cuenta de Google para acceder a tus datos desde cualquier dispositivo.
             </p>
           </div>
         </div>
@@ -56,7 +56,7 @@ export default function LoginScreen() {
         <div className="space-y-3 text-sm text-zinc-300">
           <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10">
             <Shield className="w-5 h-5 text-cyan-400" />
-            <span>Tu información está protegida mediante Firebase Authentication.</span>
+            <span>Tu información está protegida con autenticación segura de Google.</span>
           </div>
           <p className="text-xs text-zinc-500">
             Solo utilizamos tu nombre, correo y foto para personalizar tu experiencia. No compartimos tus datos con terceros.
