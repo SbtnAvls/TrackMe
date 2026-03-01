@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Filter, Search, Inbox } from 'lucide-react';
+import { Filter, Search, Inbox, Calendar, X } from 'lucide-react';
 import TransactionItem from './TransactionItem';
 
 const filterOptions = [
@@ -13,11 +13,22 @@ const filterOptions = [
 
 export default function TransactionList({ transactions, onEdit, onDelete, creditCards = [] }) {
   const [filterType, setFilterType] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  const hasDateFilter = dateFrom || dateTo;
 
   const filteredTransactions = transactions.filter((t) => {
-    if (filterType === 'all') return true;
-    if (filterType === 'card_expense') return t.type === 'expense' && t.creditCardId;
-    return t.type === filterType;
+    // Type filter
+    if (filterType !== 'all') {
+      if (filterType === 'card_expense') {
+        if (!(t.type === 'expense' && t.creditCardId)) return false;
+      } else if (t.type !== filterType) return false;
+    }
+    // Date range filter
+    if (dateFrom && t.date < dateFrom) return false;
+    if (dateTo && t.date > dateTo + 'T23:59:59') return false;
+    return true;
   });
 
   return (
@@ -65,6 +76,37 @@ export default function TransactionList({ transactions, onEdit, onDelete, credit
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Date range filter */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <Calendar className="w-4 h-4 text-zinc-500 shrink-0" />
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs focus:outline-none focus:border-violet-500 [color-scheme:dark]"
+          placeholder="Desde"
+        />
+        <span className="text-xs text-zinc-600">—</span>
+        <input
+          type="date"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs focus:outline-none focus:border-violet-500 [color-scheme:dark]"
+          placeholder="Hasta"
+        />
+        {hasDateFilter && (
+          <motion.button
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            onClick={() => { setDateFrom(''); setDateTo(''); }}
+            className="p-1.5 rounded-lg bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+            title="Limpiar filtro de fechas"
+          >
+            <X className="w-3.5 h-3.5" />
+          </motion.button>
+        )}
       </div>
 
       <AnimatePresence mode="popLayout">
