@@ -96,19 +96,36 @@ export async function sendChatMessage(apiKey, conversationHistory, userText, ima
   }
 
   const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const parts = data.candidates?.[0]?.content?.parts || [];
+
+  // Gemini 2.5 "thinking" models return multiple parts: skip thought parts
+  const textParts = parts
+    .filter(p => p.text && !p.thought)
+    .map(p => p.text);
+
+  // Fallback: if all parts are thought parts, use any text part
+  const text = textParts.length > 0
+    ? textParts.join('')
+    : parts.map(p => p.text).filter(Boolean).pop();
 
   if (!text) {
     throw new Error('Respuesta vacía de Gemini');
   }
 
-  // Parse JSON from response (handle possible markdown wrapping)
+  // Strip markdown fences and extract JSON object
   const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
+  // Try direct parse first
   try {
     return JSON.parse(cleaned);
   } catch {
-    // If Gemini didn't return valid JSON, wrap it as a need_info response
+    // Try to extract a JSON object from surrounding text
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch { /* fall through */ }
+    }
     return { status: 'need_info', question: cleaned };
   }
 }

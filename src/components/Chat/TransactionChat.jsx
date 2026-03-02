@@ -286,7 +286,7 @@ export default function TransactionChat({ onSubmit, creditCards = [], apiKey, on
                   <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[200px]">
                     {messages.map((msg, i) => (
                       <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm ${
+                        <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm break-words ${
                           msg.role === 'user'
                             ? 'bg-violet-600/30 text-white rounded-br-md'
                             : 'bg-white/5 text-zinc-200 rounded-bl-md'
