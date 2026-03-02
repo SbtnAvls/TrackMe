@@ -22,6 +22,7 @@ import { useInvestments } from './hooks/useInvestments';
 import { useEmergencyFund } from './hooks/useEmergencyFund';
 import { usePockets } from './hooks/usePockets';
 import { useTransfers } from './hooks/useTransfers';
+import { useReports } from './hooks/useReports';
 
 function App() {
   const today = new Date();
@@ -108,6 +109,13 @@ function App() {
     getTransfersByMonth,
     isLoading: loadingTransfers
   } = useTransfers();
+
+  const {
+    reports,
+    addReport,
+    deleteReport,
+    isLoading: loadingReports
+  } = useReports();
 
   const monthlyTransfers = useMemo(
     () => getTransfersByMonth(year, month),
@@ -233,7 +241,7 @@ function App() {
     }
   };
 
-  if (loadingTransactions || loadingCards || loadingDistribution || loadingInvestments || loadingEmergencyFund || loadingPockets || loadingTransfers) {
+  if (loadingTransactions || loadingCards || loadingDistribution || loadingInvestments || loadingEmergencyFund || loadingPockets || loadingTransfers || loadingReports) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <motion.div
@@ -370,6 +378,9 @@ function App() {
                     investments={investments}
                     investmentTotals={investmentTotals}
                     emergencyFund={emergencyFund}
+                    reports={reports}
+                    onAddReport={addReport}
+                    onDeleteReport={deleteReport}
                   />
                   <ExportButton
                     transactions={transactions}

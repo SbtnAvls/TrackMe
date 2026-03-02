@@ -15,6 +15,11 @@ export const EXPENSE_CATEGORIES = [
   'Educación',
   'Ropa',
   'Hogar',
+  'Tecnología',
+  'Desarrollo Personal',
+  'Imprevistos',
+  'Regalos',
+  'Comisiones bancarias',
   'Intereses/Mora',
   'Otros gastos'
 ];

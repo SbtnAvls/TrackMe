@@ -294,6 +294,29 @@ export async function getTransactionsByDateRange(uid, startYear, startMonth, end
   return items;
 }
 
+// ─── REPORTS ────────────────────────────────────────────────
+
+export async function addReport(uid, data) {
+  const ref = await addDoc(userCol(uid, 'reports'), data);
+  return ref.id;
+}
+
+export async function deleteReport(uid, id) {
+  await deleteDoc(userDocRef(uid, 'reports', id));
+}
+
+export function subscribeReports(uid, callback, onError) {
+  return onSnapshot(
+    userCol(uid, 'reports'),
+    snap => {
+      const items = snapToArray(snap);
+      items.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      callback(items);
+    },
+    onError
+  );
+}
+
 /** Subscribe to all transfers up to a date (for accumulated balance) */
 export function subscribeTransfersUpTo(uid, endDateISO, callback, onError) {
   const q = query(

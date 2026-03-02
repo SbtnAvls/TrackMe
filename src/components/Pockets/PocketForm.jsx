@@ -170,7 +170,7 @@ export default function PocketForm({ onSubmit, initialData, onCancel }) {
               value={targetAmount}
               onChange={(e) => setTargetAmount(e.target.value)}
               placeholder="0"
-              className="input-dark pl-8"
+              className="input-dark pl-10"
             />
           </div>
         </div>
@@ -188,7 +188,7 @@ export default function PocketForm({ onSubmit, initialData, onCancel }) {
                 value={initialAmount}
                 onChange={(e) => setInitialAmount(e.target.value)}
                 placeholder="0"
-                className="input-dark pl-8"
+                className="input-dark pl-10"
               />
             </div>
           </div>

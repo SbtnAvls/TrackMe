@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, X, Loader2, AlertCircle, RefreshCw, Key, Calendar, MessageSquare, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { Sparkles, X, Loader2, AlertCircle, RefreshCw, Key, Calendar, MessageSquare, ChevronRight, ChevronLeft, Eye, EyeOff, Trash2, Clock, FileText, Plus, Inbox } from 'lucide-react';
 import { generateFinancialReport } from '../../services/geminiService';
 import { getTransactionsByDateRange } from '../../services/firestoreService';
 import { calculateSummary, calculateCategoryData } from '../../db/constants';
@@ -12,6 +12,22 @@ const monthNames = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 
+function formatPeriodLabel(r) {
+  if (r.dateRangeType === 'month') {
+    return `${monthNames[r.startMonth]} ${r.startYear}`;
+  } else if (r.dateRangeType === 'range') {
+    return `${monthNames[r.startMonth]} ${r.startYear} — ${monthNames[r.endMonth]} ${r.endYear}`;
+  } else if (r.dateRangeType === 'year') {
+    return `Año completo ${r.startYear}`;
+  }
+  return 'Período no especificado';
+}
+
+function formatCreatedAt(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
 export default function AIReportButton({
   accumulatedBalance,
   creditCards,
@@ -22,18 +38,21 @@ export default function AIReportButton({
   pocketTotals,
   investments,
   investmentTotals,
-  emergencyFund
+  emergencyFund,
+  reports = [],
+  onAddReport,
+  onDeleteReport
 }) {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const [step, setStep] = useState('config'); // 'config' | 'loading' | 'report' | 'error'
+  const [step, setStep] = useState('history'); // 'history' | 'config' | 'loading' | 'report' | 'error'
   const [report, setReport] = useState(null);
   const [error, setError] = useState(null);
 
   // Form state
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
-  const [dateRangeType, setDateRangeType] = useState('month'); // 'month' | 'range' | 'year'
+  const [dateRangeType, setDateRangeType] = useState('month');
   const [startYear, setStartYear] = useState(currentYear);
   const [startMonth, setStartMonth] = useState(currentMonth);
   const [endYear, setEndYear] = useState(currentYear);
@@ -53,7 +72,6 @@ export default function AIReportButton({
     setError(null);
 
     try {
-      // Determinar el rango de fechas
       let sYear = startYear, sMonth = startMonth, eYear = endYear, eMonth = endMonth;
 
       if (dateRangeType === 'month') {
@@ -65,7 +83,6 @@ export default function AIReportButton({
         eMonth = 11;
       }
 
-      // Obtener transacciones del rango
       const transactions = await getTransactionsByDateRange(user.uid, sYear, sMonth, eYear, eMonth);
       const summary = calculateSummary(transactions);
       const categoryData = calculateCategoryData(transactions);
@@ -98,6 +115,19 @@ export default function AIReportButton({
       if (result.success) {
         setReport(result.report);
         setStep('report');
+
+        // Auto-save to Firestore
+        if (onAddReport) {
+          await onAddReport({
+            content: result.report,
+            dateRangeType,
+            startYear: sYear,
+            startMonth: sMonth,
+            endYear: eYear,
+            endMonth: eMonth,
+            additionalContext: additionalContext.trim() || null
+          });
+        }
       } else {
         setError(result.error);
         setStep('error');
@@ -110,22 +140,131 @@ export default function AIReportButton({
 
   const handleOpen = () => {
     setIsOpen(true);
-    setStep('config');
+    setStep('history');
     setReport(null);
     setError(null);
   };
 
   const handleClose = () => {
     setIsOpen(false);
-    // Limpiar API key por seguridad al cerrar
     setApiKey('');
     setShowApiKey(false);
   };
 
-  const handleBackToConfig = () => {
-    setStep('config');
-    setError(null);
+  const handleViewSavedReport = (savedReport) => {
+    setReport(savedReport.content);
+    setStep('report');
   };
+
+  const handleDeleteReport = (id) => {
+    if (window.confirm('¿Eliminar este reporte?')) {
+      onDeleteReport(id);
+    }
+  };
+
+  const getHeaderTitle = () => {
+    switch (step) {
+      case 'history': return 'Reportes IA';
+      case 'config': return 'Nuevo Reporte';
+      case 'loading': return 'Generando...';
+      case 'report': return 'Reporte Financiero';
+      case 'error': return 'Error';
+      default: return 'Reporte IA';
+    }
+  };
+
+  const getHeaderSubtitle = () => {
+    switch (step) {
+      case 'history': return `${reports.length} reporte${reports.length !== 1 ? 's' : ''} guardado${reports.length !== 1 ? 's' : ''}`;
+      case 'config': return 'Configura los parámetros del análisis';
+      case 'loading': return 'Analizando tus finanzas...';
+      case 'report': return 'Análisis generado por Gemini';
+      case 'error': return 'Algo salió mal';
+      default: return '';
+    }
+  };
+
+  const renderHistory = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-4"
+    >
+      {/* New Report Button */}
+      <motion.button
+        onClick={() => setStep('config')}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        className="w-full py-3 px-4 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40"
+      >
+        <Plus className="w-5 h-5" />
+        Generar nuevo reporte
+      </motion.button>
+
+      {/* Reports List */}
+      {reports.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <motion.div
+            animate={{ y: [0, -5, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="p-4 rounded-2xl bg-white/5 border border-white/10 mb-4"
+          >
+            <Inbox className="w-10 h-10 text-zinc-600" />
+          </motion.div>
+          <p className="text-zinc-400 font-medium">No hay reportes guardados</p>
+          <p className="text-sm text-zinc-600">Genera tu primer reporte con IA</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {reports.map((r) => (
+            <motion.div
+              key={r.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="group rounded-xl bg-white/5 border border-white/10 hover:border-amber-500/30 transition-all cursor-pointer overflow-hidden"
+            >
+              <div
+                className="p-4 flex items-start gap-3"
+                onClick={() => handleViewSavedReport(r)}
+              >
+                <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 shrink-0 mt-0.5">
+                  <FileText className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">
+                    {formatPeriodLabel(r)}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Clock className="w-3 h-3 text-zinc-500" />
+                    <p className="text-xs text-zinc-500">
+                      {formatCreatedAt(r.createdAt)}
+                    </p>
+                  </div>
+                  {r.additionalContext && (
+                    <p className="text-xs text-zinc-500 mt-1 truncate">
+                      {r.additionalContext}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <motion.button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteReport(r.id); }}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="p-2 rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
+                    title="Eliminar reporte"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </motion.button>
+                  <ChevronRight className="w-4 h-4 text-zinc-600" />
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
 
   const renderConfig = () => (
     <motion.div
@@ -367,7 +506,7 @@ export default function AIReportButton({
       <p className="text-zinc-400 font-medium">Error al generar el reporte</p>
       <p className="text-sm text-zinc-600 mt-1 text-center max-w-md">{error}</p>
       <motion.button
-        onClick={handleBackToConfig}
+        onClick={() => setStep('config')}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 text-zinc-400 hover:text-white transition-colors"
@@ -404,10 +543,15 @@ export default function AIReportButton({
         onClick={handleOpen}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 transition-shadow"
+        className="relative flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 transition-shadow"
       >
         <Sparkles className="w-4 h-4" />
         Reporte IA
+        {reports.length > 0 && (
+          <span className="absolute -top-1.5 -right-1.5 bg-white text-amber-600 text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
+            {reports.length}
+          </span>
+        )}
       </motion.button>
 
       <AnimatePresence>
@@ -429,43 +573,41 @@ export default function AIReportButton({
               {/* Header */}
               <div className="flex items-center justify-between p-5 border-b border-white/10">
                 <div className="flex items-center gap-3">
+                  {(step === 'config' || step === 'report' || step === 'error') && (
+                    <motion.button
+                      onClick={() => { setStep('history'); setReport(null); }}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      className="p-2 rounded-xl hover:bg-white/5 text-zinc-400 hover:text-white transition-colors"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </motion.button>
+                  )}
                   <div className="p-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/20">
                     <Sparkles className="w-5 h-5 text-amber-400" />
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-white">
-                      {step === 'config' ? 'Configurar Reporte' : 'Reporte Financiero con IA'}
+                      {getHeaderTitle()}
                     </h2>
                     <p className="text-xs text-zinc-500">
-                      {step === 'config' ? 'Configura los parámetros del análisis' : 'Análisis generado por Gemini'}
+                      {getHeaderSubtitle()}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {step === 'report' && (
-                    <motion.button
-                      onClick={handleBackToConfig}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="p-2 rounded-xl hover:bg-white/5 text-zinc-400 hover:text-amber-400 transition-colors"
-                      title="Nuevo reporte"
-                    >
-                      <RefreshCw className="w-5 h-5" />
-                    </motion.button>
-                  )}
-                  <motion.button
-                    onClick={handleClose}
-                    whileHover={{ scale: 1.1, rotate: 90 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="p-2 rounded-xl hover:bg-white/5 text-zinc-400"
-                  >
-                    <X className="w-5 h-5" />
-                  </motion.button>
-                </div>
+                <motion.button
+                  onClick={handleClose}
+                  whileHover={{ scale: 1.1, rotate: 90 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="p-2 rounded-xl hover:bg-white/5 text-zinc-400"
+                >
+                  <X className="w-5 h-5" />
+                </motion.button>
               </div>
 
               {/* Content */}
               <div className="flex-1 overflow-y-auto p-5">
+                {step === 'history' && renderHistory()}
                 {step === 'config' && renderConfig()}
                 {step === 'loading' && renderLoading()}
                 {step === 'error' && renderError()}
