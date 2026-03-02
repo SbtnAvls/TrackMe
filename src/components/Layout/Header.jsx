@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Wallet, Eye, EyeOff, LogOut } from 'lucide-react';
 import { usePrivacy } from '../../context/PrivacyContext';
 import { useAuth } from '../../context/AuthContext';
+import WhatsAppLink from '../Settings/WhatsAppLink';
 
 export default function Header() {
   const { isHidden, togglePrivacy } = usePrivacy();
@@ -48,6 +49,8 @@ export default function Header() {
           </motion.div>
 
           <div className="flex items-center gap-2 shrink-0">
+            <WhatsAppLink />
+
             <motion.button
               onClick={togglePrivacy}
               whileHover={{ scale: 1.05 }}
