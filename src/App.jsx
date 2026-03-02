@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Receipt, FileWarning, Sparkles, TrendingUp, Shield, Wallet } from 'lucide-react';
 import Header from './components/Layout/Header';
@@ -23,10 +23,15 @@ import { useEmergencyFund } from './hooks/useEmergencyFund';
 import { usePockets } from './hooks/usePockets';
 import { useTransfers } from './hooks/useTransfers';
 import { useReports } from './hooks/useReports';
+import TransactionChat from './components/Chat/TransactionChat';
+import { useAuth } from './context/AuthContext';
+import { subscribeSetting, putSetting } from './services/firestoreService';
 
 function App() {
+  const { user } = useAuth();
   const today = new Date();
   const [activeTab, setActiveTab] = useState('transactions');
+  const [geminiApiKey, setGeminiApiKey] = useState('');
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [editingTransaction, setEditingTransaction] = useState(null);
@@ -116,6 +121,19 @@ function App() {
     deleteReport,
     isLoading: loadingReports
   } = useReports();
+
+  // Gemini API key from Firestore settings
+  useEffect(() => {
+    if (!user) { setGeminiApiKey(''); return; }
+    return subscribeSetting(user.uid, 'geminiApiKey', (data) => {
+      setGeminiApiKey(data?.value || '');
+    }, (err) => console.error('Error loading API key setting:', err));
+  }, [user]);
+
+  const saveGeminiApiKey = useCallback(async (key) => {
+    if (!user) return;
+    await putSetting(user.uid, 'geminiApiKey', { value: key });
+  }, [user]);
 
   const monthlyTransfers = useMemo(
     () => getTransfersByMonth(year, month),
@@ -381,6 +399,8 @@ function App() {
                     reports={reports}
                     onAddReport={addReport}
                     onDeleteReport={deleteReport}
+                    savedApiKey={geminiApiKey}
+                    onSaveApiKey={saveGeminiApiKey}
                   />
                   <ExportButton
                     transactions={transactions}
@@ -428,6 +448,13 @@ function App() {
               <CategoryChart
                 categoryData={categoryData}
                 summary={summary}
+              />
+
+              <TransactionChat
+                onSubmit={handleSubmitTransaction}
+                creditCards={creditCards}
+                apiKey={geminiApiKey}
+                onSaveApiKey={saveGeminiApiKey}
               />
             </motion.div>
           ) : activeTab === 'creditCards' ? (

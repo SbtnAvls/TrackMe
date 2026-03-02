@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Loader2, AlertCircle, RefreshCw, Key, Calendar, MessageSquare, ChevronRight, ChevronLeft, Eye, EyeOff, Trash2, Clock, FileText, Plus, Inbox } from 'lucide-react';
 import { generateFinancialReport } from '../../services/geminiService';
@@ -41,7 +41,9 @@ export default function AIReportButton({
   emergencyFund,
   reports = [],
   onAddReport,
-  onDeleteReport
+  onDeleteReport,
+  savedApiKey = '',
+  onSaveApiKey
 }) {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -50,7 +52,8 @@ export default function AIReportButton({
   const [error, setError] = useState(null);
 
   // Form state
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState(savedApiKey);
+  useEffect(() => { if (savedApiKey) setApiKey(savedApiKey); }, [savedApiKey]);
   const [showApiKey, setShowApiKey] = useState(false);
   const [dateRangeType, setDateRangeType] = useState('month');
   const [startYear, setStartYear] = useState(currentYear);
@@ -112,6 +115,11 @@ export default function AIReportButton({
         emergencyFund
       }, apiKey.trim());
 
+      // Save API key if new/different
+      if (onSaveApiKey && apiKey.trim() !== savedApiKey) {
+        onSaveApiKey(apiKey.trim());
+      }
+
       if (result.success) {
         setReport(result.report);
         setStep('report');
@@ -147,7 +155,6 @@ export default function AIReportButton({
 
   const handleClose = () => {
     setIsOpen(false);
-    setApiKey('');
     setShowApiKey(false);
   };
 
