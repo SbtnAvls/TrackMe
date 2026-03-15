@@ -96,17 +96,17 @@ export async function sendChatMessage(apiKey, conversationHistory, userText, ima
   }
 
   const data = await response.json();
-  const parts = data.candidates?.[0]?.content?.parts || [];
+  const responseParts = data.candidates?.[0]?.content?.parts || [];
 
   // Gemini 2.5 "thinking" models return multiple parts: skip thought parts
-  const textParts = parts
+  const textParts = responseParts
     .filter(p => p.text && !p.thought)
     .map(p => p.text);
 
   // Fallback: if all parts are thought parts, use any text part
   const text = textParts.length > 0
     ? textParts.join('')
-    : parts.map(p => p.text).filter(Boolean).pop();
+    : responseParts.map(p => p.text).filter(Boolean).pop();
 
   if (!text) {
     throw new Error('Respuesta vacía de Gemini');
