@@ -119,11 +119,10 @@ export default function Summary({ summary, accumulatedBalance, distribution, onU
   const { isHidden } = usePrivacy();
   const isPositive = accumulatedBalance >= 0;
 
-  const savings = accumulatedBalance - (distribution.cash || 0);
-
   // Derived financial metrics
   const disponible = accumulatedBalance - (pocketTotalSaved || 0) - (emergencyFundAmount || 0);
-  const netoSinDeudas = accumulatedBalance - (totalDebt || 0);
+  const savings = disponible - (distribution.cash || 0);
+  const netoSinDeudas = disponible - (totalDebt || 0);
   const patrimonioNeto = accumulatedBalance + (investmentTotalCurrent || 0) - (totalDebt || 0);
 
   // Transfer form state
