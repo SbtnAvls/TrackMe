@@ -122,12 +122,27 @@ export async function updateCreditCard(uid, id, updates) {
 export async function deleteCreditCard(uid, id) {
   const refsToDelete = [];
 
+  // Collect transaction IDs that will be deleted (for pocket movement cleanup)
+  const linkedTxIds = [];
   const txSnap = await getDocs(userCol(uid, 'transactions'));
   txSnap.forEach(d => {
     if (String(d.data().creditCardId) === String(id)) {
       refsToDelete.push(d.ref);
+      if (d.data().linkedPocketId) {
+        linkedTxIds.push(d.id);
+      }
     }
   });
+
+  // Delete pocket movements linked to those transactions
+  if (linkedTxIds.length > 0) {
+    const movSnap = await getDocs(userCol(uid, 'pocketMovements'));
+    movSnap.forEach(d => {
+      if (linkedTxIds.includes(d.data().linkedTransactionId)) {
+        refsToDelete.push(d.ref);
+      }
+    });
+  }
 
   const trSnap = await getDocs(userCol(uid, 'transfers'));
   trSnap.forEach(d => {
@@ -200,6 +215,18 @@ export async function deletePocket(uid, id) {
     }
   });
 
+  // Clean linkedPocketId from transactions that reference this pocket
+  const txSnap = await getDocs(userCol(uid, 'transactions'));
+  const batch = writeBatch(firestore);
+  let batchCount = 0;
+  txSnap.forEach(d => {
+    if (String(d.data().linkedPocketId) === String(id)) {
+      batch.update(d.ref, { linkedPocketId: null });
+      batchCount++;
+    }
+  });
+  if (batchCount > 0) await batch.commit();
+
   refsToDelete.push(userDocRef(uid, 'pockets', id));
   await batchDeleteDocs(refsToDelete);
 }
@@ -221,6 +248,20 @@ export function subscribePockets(uid, callback, onError) {
 export async function addPocketMovement(uid, data) {
   const ref = await addDoc(userCol(uid, 'pocketMovements'), data);
   return ref.id;
+}
+
+export async function deletePocketMovement(uid, id) {
+  await deleteDoc(userDocRef(uid, 'pocketMovements', id));
+}
+
+export async function deletePocketMovementByLinkedTx(uid, transactionId) {
+  const q = query(
+    userCol(uid, 'pocketMovements'),
+    where('linkedTransactionId', '==', transactionId)
+  );
+  const snap = await getDocs(q);
+  const refs = snap.docs.map(d => d.ref);
+  if (refs.length > 0) await batchDeleteDocs(refs);
 }
 
 export function subscribePocketMovements(uid, callback, onError) {

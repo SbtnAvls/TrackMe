@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Minus, Check, X, Edit2, Trash2, Calendar, Target, TrendingUp, History, ChevronDown, ChevronUp, Wallet, Shield, Plane, Car, Home, GraduationCap, Smartphone, Heart, Gift, PartyPopper, Palmtree, Briefcase } from 'lucide-react';
+import { Plus, Minus, Check, X, Edit2, Trash2, Calendar, Target, TrendingUp, History, ChevronDown, ChevronUp, Wallet, Shield, Plane, Car, Home, GraduationCap, Smartphone, Heart, Gift, PartyPopper, Palmtree, Briefcase, CreditCard } from 'lucide-react';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import { usePrivacy } from '../../context/PrivacyContext';
 import { POCKET_CATEGORIES } from '../../db/constants';
@@ -41,12 +41,14 @@ export default function PocketItem({
   onDeposit,
   onWithdraw,
   onEdit,
-  onDelete
+  onDelete,
+  creditCards = []
 }) {
   const { isHidden } = usePrivacy();
   const [actionType, setActionType] = useState(null);
   const [actionAmount, setActionAmount] = useState('');
   const [actionDescription, setActionDescription] = useState('');
+  const [linkedDebtId, setLinkedDebtId] = useState('');
   const [showHistory, setShowHistory] = useState(false);
 
   const category = POCKET_CATEGORIES.find(c => c.id === pocket.category) || POCKET_CATEGORIES.find(c => c.id === 'other');
@@ -70,17 +72,29 @@ export default function PocketItem({
 
   const daysRemaining = getDaysRemaining();
 
-  const handleAction = () => {
+  const [actionError, setActionError] = useState('');
+
+  const handleAction = async () => {
     const amount = parseFloat(actionAmount);
-    if (amount > 0) {
+    if (!(amount > 0)) return;
+    if (actionType === 'withdraw' && amount > pocket.currentAmount) {
+      setActionError('El monto supera el saldo del bolsillo');
+      return;
+    }
+    setActionError('');
+    try {
       if (actionType === 'deposit') {
-        onDeposit(pocket.id, amount, actionDescription);
+        await onDeposit(pocket.id, amount, actionDescription);
       } else {
-        onWithdraw(pocket.id, amount, actionDescription);
+        await onWithdraw(pocket.id, amount, actionDescription, linkedDebtId || null);
       }
       setActionAmount('');
       setActionDescription('');
+      setLinkedDebtId('');
       setActionType(null);
+    } catch (err) {
+      setActionError('Error al procesar la operación');
+      console.error('Pocket action error:', err);
     }
   };
 
@@ -258,6 +272,7 @@ export default function PocketItem({
                     setActionType(null);
                     setActionAmount('');
                     setActionDescription('');
+                    setLinkedDebtId('');
                   }}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -273,6 +288,35 @@ export default function PocketItem({
                 placeholder="Descripción (opcional)"
                 className="w-full px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm focus:outline-none focus:border-violet-500"
               />
+              {actionType === 'withdraw' && creditCards.length > 0 && (
+                <div>
+                  <label className="flex items-center gap-2 text-xs text-zinc-400 mb-1.5">
+                    <CreditCard className="w-3.5 h-3.5" />
+                    Abonar a deuda (opcional)
+                  </label>
+                  <select
+                    value={linkedDebtId}
+                    onChange={(e) => setLinkedDebtId(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-white text-sm focus:outline-none focus:border-violet-500"
+                  >
+                    <option value="">Sin deuda (retiro normal)</option>
+                    {creditCards.map((card) => (
+                      <option key={card.id} value={card.id}>
+                        {card.bank} {card.lastFourDigits ? `•••• ${card.lastFourDigits}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {linkedDebtId && (
+                    <p className="text-xs text-violet-400 mt-1.5 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
+                      Se abona a la deuda y no se descuenta de tu disponible
+                    </p>
+                  )}
+                </div>
+              )}
+              {actionError && (
+                <p className="text-xs text-red-400 mt-1.5">{actionError}</p>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -332,9 +376,16 @@ export default function PocketItem({
                           <p className="text-sm text-white">
                             {movement.description || (movement.type === 'deposit' ? 'Depósito' : 'Retiro')}
                           </p>
-                          <p className="text-xs text-zinc-500">
-                            {formatDate(movement.date)}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs text-zinc-500">
+                              {formatDate(movement.date)}
+                            </p>
+                            {movement.linkedDebtId && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400">
+                                Vinculado a deuda
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <p className={`font-medium ${

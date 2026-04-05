@@ -6,6 +6,7 @@ import {
   deletePocket as deletePocketFS,
   subscribePockets,
   addPocketMovement,
+  deletePocketMovementByLinkedTx,
   subscribePocketMovements
 } from '../services/firestoreService';
 
@@ -99,28 +100,39 @@ export function usePockets() {
     await deletePocketFS(user.uid, id);
   }, [user]);
 
-  const depositToPocket = useCallback(async (pocketId, amount, description = '') => {
+  const depositToPocket = useCallback(async (pocketId, amount, description = '', { linkedDebtId = null, linkedTransactionId = null } = {}) => {
     if (!user) return;
-    await addPocketMovement(user.uid, {
+    const movement = {
       pocketId,
       type: 'deposit',
       amount,
       description,
       date: new Date().toISOString(),
       createdAt: new Date().toISOString()
-    });
+    };
+    if (linkedDebtId) movement.linkedDebtId = linkedDebtId;
+    if (linkedTransactionId) movement.linkedTransactionId = linkedTransactionId;
+    await addPocketMovement(user.uid, movement);
   }, [user]);
 
-  const withdrawFromPocket = useCallback(async (pocketId, amount, description = '') => {
+  const withdrawFromPocket = useCallback(async (pocketId, amount, description = '', { linkedDebtId = null, linkedTransactionId = null } = {}) => {
     if (!user) return;
-    await addPocketMovement(user.uid, {
+    const movement = {
       pocketId,
       type: 'withdraw',
       amount,
       description,
       date: new Date().toISOString(),
       createdAt: new Date().toISOString()
-    });
+    };
+    if (linkedDebtId) movement.linkedDebtId = linkedDebtId;
+    if (linkedTransactionId) movement.linkedTransactionId = linkedTransactionId;
+    await addPocketMovement(user.uid, movement);
+  }, [user]);
+
+  const deleteLinkedMovement = useCallback(async (transactionId) => {
+    if (!user) return;
+    await deletePocketMovementByLinkedTx(user.uid, transactionId);
   }, [user]);
 
   const getPocketMovements = useCallback((pocketId) => {
@@ -150,6 +162,7 @@ export function usePockets() {
     deletePocket,
     depositToPocket,
     withdrawFromPocket,
+    deleteLinkedMovement,
     getPocketMovements,
     totals
   };

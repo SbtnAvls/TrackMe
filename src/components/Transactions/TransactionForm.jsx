@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, CreditCard, Zap, User, Landmark, Wallet, Banknote, Building2 } from 'lucide-react';
+import { Plus, X, CreditCard, Zap, User, Landmark, Wallet, Banknote, Building2, PiggyBank } from 'lucide-react';
 import { getCategories, DEBT_PAYMENT_CATEGORY } from '../../db/constants';
 import { formatDateForInput } from '../../utils/formatters';
 
-export default function TransactionForm({ onSubmit, initialData, onCancel, creditCards = [] }) {
+export default function TransactionForm({ onSubmit, initialData, onCancel, creditCards = [], pockets = [] }) {
   const [type, setType] = useState(initialData?.type || 'expense');
   const [amount, setAmount] = useState(initialData?.amount || '');
   const [category, setCategory] = useState(initialData?.category || '');
   const [description, setDescription] = useState(initialData?.description || '');
   const [creditCardId, setCreditCardId] = useState(initialData?.creditCardId || '');
+  const [linkedPocketId, setLinkedPocketId] = useState(initialData?.linkedPocketId || '');
   const [paymentMethod, setPaymentMethod] = useState(initialData?.paymentMethod || 'debit');
   const [date, setDate] = useState(
     initialData?.date ? formatDateForInput(initialData.date) : formatDateForInput(new Date())
@@ -22,6 +23,7 @@ export default function TransactionForm({ onSubmit, initialData, onCancel, credi
       setCategory(initialData.category || '');
       setDescription(initialData.description || '');
       setCreditCardId(initialData.creditCardId || '');
+      setLinkedPocketId(initialData.linkedPocketId || '');
       setPaymentMethod(initialData.paymentMethod || 'debit');
       setDate(initialData.date ? formatDateForInput(initialData.date) : formatDateForInput(new Date()));
     } else {
@@ -30,6 +32,7 @@ export default function TransactionForm({ onSubmit, initialData, onCancel, credi
       setCategory('');
       setDescription('');
       setCreditCardId('');
+      setLinkedPocketId('');
       setPaymentMethod('debit');
       setDate(formatDateForInput(new Date()));
     }
@@ -43,6 +46,9 @@ export default function TransactionForm({ onSubmit, initialData, onCancel, credi
     if (newType === 'income') {
       setCreditCardId('');
     }
+    if (newType !== 'card_payment') {
+      setLinkedPocketId('');
+    }
   };
 
   const handleSubmit = (e) => {
@@ -50,21 +56,26 @@ export default function TransactionForm({ onSubmit, initialData, onCancel, credi
     if (!amount || !category) return;
     if (type === 'card_payment' && !creditCardId) return;
 
-    onSubmit({
+    const transaction = {
       type,
       amount: parseFloat(amount),
       category,
       description,
       date,
-      creditCardId: creditCardId ? parseInt(creditCardId) : null,
+      creditCardId: creditCardId || null,
       paymentMethod: creditCardId ? null : paymentMethod
-    });
+    };
+    if (type === 'card_payment' && linkedPocketId) {
+      transaction.linkedPocketId = linkedPocketId;
+    }
+    onSubmit(transaction);
 
     if (!initialData) {
       setAmount('');
       setCategory(type === 'card_payment' ? DEBT_PAYMENT_CATEGORY : '');
       setDescription('');
       setCreditCardId('');
+      setLinkedPocketId('');
       setPaymentMethod('debit');
       setDate(formatDateForInput(new Date()));
     }
@@ -248,6 +259,7 @@ export default function TransactionForm({ onSubmit, initialData, onCancel, credi
                 onChange={(e) => setCreditCardId(e.target.value)}
                 className="select-dark"
                 required
+                disabled={!!initialData?.linkedPocketId}
               >
                 <option value="">Seleccionar deuda</option>
                 {creditCards.map((card) => (
@@ -259,6 +271,43 @@ export default function TransactionForm({ onSubmit, initialData, onCancel, credi
               {creditCards.length === 0 && (
                 <p className="text-xs text-orange-400 mt-2">
                   Primero agrega una deuda
+                </p>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Pocket selector for debt payments */}
+        <AnimatePresence mode="wait">
+          {type === 'card_payment' && pockets.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              <label className="block text-sm font-medium text-zinc-400 mb-2">
+                <div className="flex items-center gap-2">
+                  <PiggyBank className="w-4 h-4" />
+                  Depositar en bolsillo (opcional)
+                </div>
+              </label>
+              <select
+                value={linkedPocketId}
+                onChange={(e) => setLinkedPocketId(e.target.value)}
+                className="select-dark"
+                disabled={!!initialData?.linkedPocketId}
+              >
+                <option value="">Sin bolsillo (pago normal)</option>
+                {pockets.map((pocket) => (
+                  <option key={pocket.id} value={pocket.id}>
+                    {pocket.name}
+                  </option>
+                ))}
+              </select>
+              {linkedPocketId && (
+                <p className="text-xs text-violet-400 mt-2 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
+                  El pago se deposita en el bolsillo y no se descuenta de tu disponible
                 </p>
               )}
             </motion.div>

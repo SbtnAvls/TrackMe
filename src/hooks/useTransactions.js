@@ -56,6 +56,7 @@ export function useTransactions(year, month) {
     const txBalance = txnsUpTo.reduce((acc, t) => {
       if (t.type === 'income') return acc + t.amount;
       if (t.type === 'expense' && t.creditCardId) return acc;
+      if (t.type === 'card_payment' && t.linkedPocketId) return acc;
       return acc - t.amount;
     }, 0);
 
@@ -69,11 +70,15 @@ export function useTransactions(year, month) {
   const addTransaction = useCallback(async (transaction) => {
     if (!user) return;
     const dateWithTime = transaction.date + 'T12:00:00';
-    return await addTransactionFS(user.uid, {
+    const data = {
       ...transaction,
       date: new Date(dateWithTime).toISOString(),
       createdAt: new Date().toISOString()
-    });
+    };
+    if (data.linkedPocketId && data.type !== 'card_payment') {
+      delete data.linkedPocketId;
+    }
+    return await addTransactionFS(user.uid, data);
   }, [user]);
 
   const updateTransaction = useCallback(async (id, updates) => {
@@ -92,7 +97,7 @@ export function useTransactions(year, month) {
 
   const summary = useMemo(() => {
     if (!transactions) {
-      return { totalIncome: 0, totalExpense: 0, cashExpense: 0, creditCardExpense: 0, cardPayments: 0, balance: 0 };
+      return { totalIncome: 0, totalExpense: 0, cashExpense: 0, creditCardExpense: 0, cardPayments: 0, linkedPocketPayments: 0, balance: 0 };
     }
 
     return transactions.reduce(
@@ -108,11 +113,12 @@ export function useTransactions(year, month) {
           }
         } else if (t.type === 'card_payment') {
           acc.cardPayments += t.amount;
+          if (t.linkedPocketId) acc.linkedPocketPayments += t.amount;
         }
-        acc.balance = acc.totalIncome - acc.cashExpense - acc.cardPayments;
+        acc.balance = acc.totalIncome - acc.cashExpense - (acc.cardPayments - acc.linkedPocketPayments);
         return acc;
       },
-      { totalIncome: 0, totalExpense: 0, cashExpense: 0, creditCardExpense: 0, cardPayments: 0, balance: 0 }
+      { totalIncome: 0, totalExpense: 0, cashExpense: 0, creditCardExpense: 0, cardPayments: 0, linkedPocketPayments: 0, balance: 0 }
     );
   }, [transactions]);
 

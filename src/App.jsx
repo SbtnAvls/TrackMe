@@ -26,6 +26,7 @@ import { useReports } from './hooks/useReports';
 import TransactionChat from './components/Chat/TransactionChat';
 import { useAuth } from './context/AuthContext';
 import { subscribeSetting, putSetting } from './services/firestoreService';
+import { DEBT_PAYMENT_CATEGORY } from './db/constants';
 
 function App() {
   const { user } = useAuth();
@@ -103,6 +104,7 @@ function App() {
     deletePocket,
     depositToPocket,
     withdrawFromPocket,
+    deleteLinkedMovement,
     getPocketMovements,
     isLoading: loadingPockets
   } = usePockets();
@@ -160,12 +162,45 @@ function App() {
 
       await updateTransaction(editingTransaction.id, data);
       if (delta !== 0) await adjustCash(delta);
+
+      // Sync linked pocket movement if amount changed
+      if (oldTx.linkedPocketId && oldTx.amount !== data.amount) {
+        try {
+          await deleteLinkedMovement(editingTransaction.id);
+          const debtCard = creditCards.find(c => String(c.id) === String(data.creditCardId));
+          const debtLabel = debtCard ? debtCard.bank : 'Deuda';
+          await depositToPocket(oldTx.linkedPocketId, data.amount, `Pago de deuda: ${debtLabel}`, {
+            linkedDebtId: String(data.creditCardId),
+            linkedTransactionId: editingTransaction.id
+          });
+        } catch (err) {
+          console.error('Error syncing linked pocket movement:', err);
+          // Revert transaction to old amount to maintain consistency
+          await updateTransaction(editingTransaction.id, { amount: oldTx.amount });
+          throw err;
+        }
+      }
+
       setEditingTransaction(null);
     } else {
-      await addTransaction(data);
+      const txId = await addTransaction(data);
       if (data.paymentMethod === 'cash') {
         if (data.type === 'income') await adjustCash(data.amount);
         else if (data.type === 'expense') await adjustCash(-data.amount);
+      }
+      if (data.type === 'card_payment' && data.linkedPocketId) {
+        try {
+          const debtCard = creditCards.find(c => String(c.id) === String(data.creditCardId));
+          const debtLabel = debtCard ? debtCard.bank : 'Deuda';
+          await depositToPocket(data.linkedPocketId, data.amount, `Pago de deuda: ${debtLabel}`, {
+            linkedDebtId: String(data.creditCardId),
+            linkedTransactionId: txId
+          });
+        } catch (err) {
+          console.error('Error creating linked pocket deposit, rolling back transaction:', err);
+          await deleteTransaction(txId);
+          throw err;
+        }
       }
     }
   };
@@ -182,12 +217,44 @@ function App() {
         if (tx.type === 'income') await adjustCash(-tx.amount);
         else if (tx.type === 'expense') await adjustCash(tx.amount);
       }
+      if (tx?.linkedPocketId) {
+        await deleteLinkedMovement(id);
+      }
       await deleteTransaction(id);
     }
   };
 
   const handleCancelEditTransaction = () => {
     setEditingTransaction(null);
+  };
+
+  const handlePocketWithdraw = async (pocketId, amount, description, linkedDebtId) => {
+    if (!linkedDebtId) {
+      await withdrawFromPocket(pocketId, amount, description);
+      return;
+    }
+    const debtCard = creditCards.find(c => String(c.id) === String(linkedDebtId));
+    const pocketName = pockets.find(p => String(p.id) === String(pocketId))?.name || 'Bolsillo';
+    const txId = await addTransaction({
+      type: 'card_payment',
+      amount,
+      category: DEBT_PAYMENT_CATEGORY,
+      description: `Retiro de bolsillo: ${pocketName}`,
+      date: new Date().toISOString().split('T')[0],
+      creditCardId: linkedDebtId,
+      paymentMethod: null,
+      linkedPocketId: pocketId
+    });
+    try {
+      await withdrawFromPocket(pocketId, amount, description || `Abono a deuda: ${debtCard?.bank || 'Deuda'}`, {
+        linkedDebtId,
+        linkedTransactionId: txId
+      });
+    } catch (err) {
+      console.error('Error creating linked pocket withdrawal, rolling back transaction:', err);
+      await deleteTransaction(txId);
+      throw err;
+    }
   };
 
   const handleSubmitCard = async (data) => {
@@ -432,6 +499,7 @@ function App() {
                     initialData={editingTransaction}
                     onCancel={editingTransaction ? handleCancelEditTransaction : null}
                     creditCards={creditCards}
+                    pockets={pockets}
                   />
                 </div>
 
@@ -551,8 +619,9 @@ function App() {
                 onUpdatePocket={updatePocket}
                 onDeletePocket={deletePocket}
                 onDeposit={depositToPocket}
-                onWithdraw={withdrawFromPocket}
+                onWithdraw={handlePocketWithdraw}
                 getPocketMovements={getPocketMovements}
+                creditCards={creditCards}
               />
             </motion.div>
           )}

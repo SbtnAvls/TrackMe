@@ -16,7 +16,8 @@ export default function PocketList({
   onDeletePocket,
   onDeposit,
   onWithdraw,
-  getPocketMovements
+  getPocketMovements,
+  creditCards = []
 }) {
   const { isHidden } = usePrivacy();
   const [showForm, setShowForm] = useState(false);
@@ -268,6 +269,7 @@ export default function PocketList({
                 onWithdraw={onWithdraw}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                creditCards={creditCards}
               />
             ))}
           </AnimatePresence>
