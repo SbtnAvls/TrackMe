@@ -102,7 +102,7 @@ export default function CategoryChart({ categoryData, summary }) {
         whileHover={{ scale: 1.01 }}
         className="glass rounded-2xl p-5 relative overflow-hidden"
       >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-violet-500/10 to-transparent rounded-full blur-2xl" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/40 to-transparent" />
 
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 rounded-xl bg-gradient-to-r from-violet-500/20 to-purple-500/20 border border-violet-500/20">

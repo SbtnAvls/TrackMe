@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Receipt, FileWarning, Sparkles, TrendingUp, Shield, Wallet } from 'lucide-react';
+import { Receipt, FileWarning, TrendingUp, Shield, Wallet } from 'lucide-react';
 import Header from './components/Layout/Header';
 import MonthSelector from './components/Dashboard/MonthSelector';
 import Summary from './components/Dashboard/Summary';
@@ -27,6 +27,8 @@ import TransactionChat from './components/Chat/TransactionChat';
 import { useAuth } from './context/AuthContext';
 import { subscribeSetting, putSetting } from './services/firestoreService';
 import { DEBT_PAYMENT_CATEGORY } from './db/constants';
+import BrandMark from './components/Brand/BrandMark';
+import { BRAND } from './config/brand';
 
 function App() {
   const { user } = useAuth();
@@ -335,13 +337,12 @@ function App() {
           className="flex flex-col items-center gap-4"
         >
           <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            className="p-4 rounded-2xl bg-gradient-to-r from-violet-500/20 to-purple-500/20 border border-violet-500/20"
+            animate={{ y: [0, -4, 0] }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
           >
-            <Sparkles className="w-8 h-8 text-violet-400" />
+            <BrandMark className="w-14 h-14 shadow-xl shadow-emerald-950/50" />
           </motion.div>
-          <p className="text-zinc-400">Cargando...</p>
+          <p className="text-zinc-400">Cargando {BRAND.name}...</p>
         </motion.div>
       </div>
     );

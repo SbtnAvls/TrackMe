@@ -167,26 +167,10 @@ export default function Summary({ summary, accumulatedBalance, distribution, onU
         className="relative overflow-hidden rounded-2xl p-4 sm:p-6"
       >
         {/* Animated background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 via-purple-600/20 to-fuchsia-600/20" />
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/70 via-stone-900/80 to-amber-950/40" />
         <div className="absolute inset-0 glass" />
-
-        {/* Floating orbs */}
-        <motion.div
-          animate={{
-            x: [0, 30, 0],
-            y: [0, -20, 0],
-          }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-4 right-10 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            x: [0, -20, 0],
-            y: [0, 30, 0],
-          }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-4 left-10 w-24 h-24 bg-cyan-500/20 rounded-full blur-3xl"
-        />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/40 to-transparent" />
+        <div className="absolute bottom-0 right-0 h-20 w-2/3 bg-[linear-gradient(135deg,transparent,rgba(20,184,166,0.16))]" />
 
         <div className="relative">
           <div className="flex items-center justify-between mb-4">

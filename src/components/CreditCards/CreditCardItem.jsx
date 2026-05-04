@@ -52,19 +52,9 @@ export default function CreditCardItem({ card, onEdit, onDelete }) {
       className={`relative overflow-hidden rounded-2xl p-5 transition-shadow duration-300 hover:shadow-xl ${getGlowColor()}`}
     >
       {/* Gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900" />
-
-      {/* Decorative elements */}
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-cyan-500/10 to-purple-500/10 rounded-full blur-2xl"
-      />
-      <motion.div
-        animate={{ rotate: -360 }}
-        transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-        className="absolute -bottom-10 -left-10 w-24 h-24 bg-gradient-to-br from-violet-500/10 to-pink-500/10 rounded-full blur-2xl"
-      />
+      <div className="absolute inset-0 bg-gradient-to-br from-stone-900 via-zinc-900 to-emerald-950/80" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/40 to-transparent" />
+      <div className="absolute bottom-0 left-0 h-1 w-full bg-gradient-to-r from-emerald-500/60 via-amber-500/50 to-teal-500/60" />
 
       <div className="relative">
         {/* Header */}

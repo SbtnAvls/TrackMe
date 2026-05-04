@@ -12,9 +12,9 @@ export default function AuthGate({ children }) {
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-          className="p-4 rounded-full bg-gradient-to-r from-cyan-500/20 to-purple-500/20"
+          className="p-4 rounded-full bg-gradient-to-r from-emerald-500/20 to-amber-500/20"
         >
-          <Loader className="w-8 h-8 text-cyan-300" />
+          <Loader className="w-8 h-8 text-emerald-300" />
         </motion.div>
         <p className="text-sm text-zinc-400">Conectando con tu cuenta...</p>
       </div>

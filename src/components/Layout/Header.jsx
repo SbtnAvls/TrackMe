@@ -1,8 +1,10 @@
 import { motion } from 'framer-motion';
-import { Wallet, Eye, EyeOff, LogOut } from 'lucide-react';
+import { Eye, EyeOff, LogOut } from 'lucide-react';
 import { usePrivacy } from '../../context/PrivacyContext';
 import { useAuth } from '../../context/AuthContext';
 import WhatsAppLink from '../Settings/WhatsAppLink';
+import BrandMark from '../Brand/BrandMark';
+import { BRAND } from '../../config/brand';
 
 export default function Header() {
   const { isHidden, togglePrivacy } = usePrivacy();
@@ -30,21 +32,12 @@ export default function Header() {
             whileHover={{ scale: 1.02 }}
             transition={{ type: "spring", stiffness: 400 }}
           >
-            <motion.div
-              className="relative shrink-0"
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl blur-lg opacity-50" />
-              <div className="relative bg-gradient-to-r from-cyan-500 to-purple-500 p-2 rounded-xl">
-                <Wallet className="w-5 h-5 text-white" />
-              </div>
-            </motion.div>
+            <BrandMark className="w-10 h-10 shrink-0 shadow-lg shadow-emerald-950/40" />
             <div className="min-w-0">
-              <h1 className="text-lg font-bold gradient-text leading-tight">
-                ExpenseTracker
+              <h1 className="text-lg font-bold brand-text leading-tight">
+                {BRAND.name}
               </h1>
-              <p className="text-[10px] text-zinc-500 hidden sm:block">Control financiero inteligente</p>
+              <p className="text-[10px] text-zinc-500 hidden sm:block">{BRAND.tagline}</p>
             </div>
           </motion.div>
 
@@ -57,7 +50,7 @@ export default function Header() {
               whileTap={{ scale: 0.95 }}
               className={`p-2 rounded-xl transition-all duration-300 ${
                 isHidden
-                  ? 'bg-violet-500/20 border border-violet-500/30 text-violet-400'
+                  ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300'
                   : 'glass text-zinc-400 hover:text-white'
               }`}
               title={isHidden ? 'Mostrar valores' : 'Ocultar valores'}
@@ -84,9 +77,7 @@ export default function Header() {
                       draggable={false}
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-500/40 to-purple-500/40 text-white">
-                      <Wallet className="w-4 h-4" />
-                    </div>
+                    <BrandMark className="w-full h-full" />
                   )}
                 </div>
                 <div className="hidden sm:block min-w-0">

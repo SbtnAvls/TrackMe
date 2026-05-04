@@ -1,6 +1,6 @@
-# Expense Tracker
+# Rumbo
 
-Aplicación web para administrar ingresos, gastos y deudas con una interfaz moderna construida sobre React, Vite y Tailwind.
+Aplicación web para administrar ingresos, gastos, deudas, bolsillos e inversiones con una interfaz moderna construida sobre React, Vite y Tailwind.
 
 ## Requisitos
 

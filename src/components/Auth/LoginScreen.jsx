@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { LogIn, Shield, Wallet } from 'lucide-react';
+import { LogIn, Shield } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import BrandMark from '../Brand/BrandMark';
+import { BRAND } from '../../config/brand';
 
 export default function LoginScreen() {
   const { loginWithGoogle, isProcessing, error } = useAuth();
@@ -27,7 +29,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-[radial-gradient(circle_at_top,_rgba(99,_102,_241,_0.15),_transparent_50%),_radial-gradient(circle_at_bottom,_rgba(14,_165,_233,_0.15),_transparent_45%)]">
+    <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-brand-auth">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -35,18 +37,13 @@ export default function LoginScreen() {
         className="w-full max-w-md glass-strong rounded-3xl p-8 border border-white/10 shadow-2xl space-y-6"
       >
         <div className="flex flex-col items-center text-center space-y-4">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-2xl blur-2xl opacity-60 animate-pulse" />
-            <div className="relative bg-gradient-to-r from-cyan-500 to-purple-500/80 to-pink-500 p-4 rounded-2xl shadow-xl">
-              <Wallet className="w-10 h-10 text-white" />
-            </div>
-          </div>
+          <BrandMark className="w-16 h-16 shadow-2xl shadow-emerald-950/50" />
 
           <div>
-            <p className="text-sm uppercase tracking-[0.35em] text-cyan-200/80 font-semibold">
-              ExpenseTracker
+            <p className="text-sm uppercase tracking-[0.35em] text-amber-200/80 font-semibold">
+              {BRAND.name}
             </p>
-            <h2 className="text-2xl font-semibold text-white mt-2">Bienvenido</h2>
+            <h2 className="text-2xl font-semibold text-white mt-2">Bienvenido a {BRAND.name}</h2>
             <p className="text-sm text-zinc-400 mt-2">
               Inicia sesión con tu cuenta de Google para acceder a tus datos desde cualquier dispositivo.
             </p>
@@ -55,7 +52,7 @@ export default function LoginScreen() {
 
         <div className="space-y-3 text-sm text-zinc-300">
           <div className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/10">
-            <Shield className="w-5 h-5 text-cyan-400" />
+            <Shield className="w-5 h-5 text-amber-300" />
             <span>Tu información está protegida con autenticación segura de Google.</span>
           </div>
           <p className="text-xs text-zinc-500">
@@ -74,7 +71,7 @@ export default function LoginScreen() {
           disabled={isProcessing}
           whileHover={!isProcessing ? { scale: 1.02 } : undefined}
           whileTap={!isProcessing ? { scale: 0.98 } : undefined}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-white bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-500 shadow-lg shadow-indigo-500/30 disabled:opacity-70 disabled:cursor-not-allowed disabled:shadow-none transition-all duration-200"
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-amber-500 shadow-lg shadow-emerald-950/40 disabled:opacity-70 disabled:cursor-not-allowed disabled:shadow-none transition-all duration-200"
         >
           <LogIn className="w-5 h-5" />
           {isProcessing ? 'Conectando...' : 'Entrar con Google'}
